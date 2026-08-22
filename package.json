@@ -1,0 +1,30 @@
+{
+  "name": "discover-analyzer",
+  "version": "2.0.0",
+  "description": "Google Discover entertainment algorithm analyzer — crack what gets surfaced",
+  "main": "src/cli.js",
+  "bin": {
+    "discover": "./src/cli.js"
+  },
+  "scripts": {
+    "setup": "bash setup.sh",
+    "start": "bash start.sh",
+    "auto": "bash start.sh",
+    "collect": "node src/cli.js collect --once",
+    "collect:auto": "node src/cli.js collect --interval=6",
+    "analyze": "node src/cli.js analyze",
+    "report": "node src/cli.js report",
+    "dashboard": "node src/cli.js dashboard",
+    "score": "node src/cli.js score",
+    "scan": "node src/cli.js scan",
+    "test-proxies": "node src/cli.js proxies --test"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^12.0.0",
+    "express": "^4.18.0",
+    "ora": "^5.4.1",
+    "sql.js": "^1.10.0",
+    "xml2js": "^0.6.2"
+  }
+}

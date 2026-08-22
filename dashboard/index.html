@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discover Algorithm Intelligence</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --card: #12121a;
+      --card-hover: #1a1a28;
+      --border: #1e1e2e;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.15);
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+      --cyan: #06b6d4;
+      --purple: #a855f7;
+      --orange: #f97316;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      padding: 24px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(180deg, rgba(99,102,241,0.05) 0%, transparent 100%);
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .header-controls select, .header-controls button {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .header-controls button:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .header-controls select:focus, .header-controls button:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      padding: 24px 32px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--cyan));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .stat-card:hover::before { opacity: 1; }
+    .stat-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+    .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .stat-value { font-size: 28px; font-weight: 800; margin-top: 4px; letter-spacing: -1px; }
+    .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 0 32px 32px;
+    }
+
+    .grid-full { grid-column: 1 / -1; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      transition: border-color 0.3s;
+    }
+
+    .card:hover { border-color: rgba(99, 102, 241, 0.3); }
+
+    .card h2 {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card h2 span { font-size: 16px; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 10px 12px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(30,30,46,0.5);
+    }
+    tr:hover td { background: rgba(99, 102, 241, 0.03); }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-accent { background: var(--accent-glow); color: var(--accent); }
+    .badge-green { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge-yellow { background: rgba(234,179,8,0.15); color: var(--yellow); }
+    .badge-cyan { background: rgba(6,182,212,0.15); color: var(--cyan); }
+    .badge-purple { background: rgba(168,85,247,0.15); color: var(--purple); }
+
+    /* Bar chart inline */
+    .inline-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--cyan));
+      transition: width 0.6s ease;
+    }
+
+    .bar-container {
+      background: var(--border);
+      border-radius: 3px;
+      height: 6px;
+      width: 100%;
+    }
+
+    /* Chart containers */
+    .chart-wrap { position: relative; height: 280px; }
+
+    /* Power word list */
+    .pw-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+    }
+
+    .pw-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      background: rgba(99, 102, 241, 0.05);
+      border-radius: 6px;
+      font-size: 12px;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .pw-item:hover { border-color: var(--accent); background: var(--accent-glow); }
+    .pw-count { color: var(--accent); font-weight: 700; }
+
+    /* Loading */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 200px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .loading span { animation: pulse 1.5s infinite; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; padding: 0 16px 16px; }
+      .stats-bar { padding: 16px; }
+      .header { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚡ Discover Algorithm Intelligence</h1>
+  <div class="header-controls">
+    <a href="/topics" style="background:var(--card);color:var(--text);border:1px solid var(--border);padding:8px 16px;border-radius:8px;font-size:13px;text-decoration:none;">🎯 Topics</a>
+    <select id="periodSelect" onchange="loadData()">
+      <option value="7">Last 7 days</option>
+      <option value="14">Last 14 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="90">Last 90 days</option>
+    </select>
+    <button onclick="exportData()">↓ Export</button>
+  </div>
+</div>
+
+<div class="stats-bar" id="statsBar">
+  <div class="loading"><span>Loading data...</span></div>
+</div>
+
+<!-- Title Builder -->
+<div style="padding:0 32px 16px;">
+  <div class="card" style="border:1px solid var(--purple);background:linear-gradient(135deg, rgba(168,85,247,0.05), rgba(99,102,241,0.03));">
+    <h2><span>🏗️</span> Title Builder — The Verified Formula</h2>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+      <input type="text" id="genSubject" placeholder="Franchise / subject — e.g. Spider-Man: Brand New Day"
+        style="flex:2;min-width:240px;padding:12px 14px;border-radius:8px;border:2px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-family:Inter,sans-serif;outline:none;" />
+      <input type="text" id="genDetail" placeholder="News detail (or list noun in list mode)"
+        style="flex:3;min-width:260px;padding:12px 14px;border-radius:8px;border:2px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-family:Inter,sans-serif;outline:none;"
+        onkeydown="if(event.key==='Enter')generateTitles()" />
+      <select id="genMode" style="padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-family:inherit;">
+        <option value="news">News</option>
+        <option value="list">Listicle</option>
+      </select>
+      <button onclick="generateTitles()" style="padding:12px 24px;border-radius:8px;border:none;background:var(--purple);color:white;font-weight:700;font-size:14px;cursor:pointer;font-family:Inter,sans-serif;">Build</button>
+    </div>
+    <div id="genResult" style="margin-top:14px;display:none;"></div>
+  </div>
+</div>
+
+<!-- Headline Scorer -->
+<div style="padding:0 32px 16px;">
+  <div class="card" style="border:1px solid var(--accent);background:linear-gradient(135deg, rgba(99,102,241,0.05), rgba(6,182,212,0.03));">
+    <h2><span>🎯</span> Headline Scorer — Test Before You Publish</h2>
+    <div style="display:flex;gap:12px;align-items:flex-start;">
+      <input type="text" id="scoreInput" placeholder="Paste your headline here and hit Enter..."
+        style="flex:1;padding:14px 16px;border-radius:8px;border:2px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;font-family:Inter,sans-serif;outline:none;transition:border 0.2s;"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+        onkeydown="if(event.key==='Enter')scoreHeadline()" />
+      <button onclick="scoreHeadline()" style="padding:14px 28px;border-radius:8px;border:none;background:var(--accent);color:white;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;font-family:Inter,sans-serif;transition:opacity 0.2s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">Score It</button>
+    </div>
+    <div id="scoreResult" style="margin-top:16px;display:none;"></div>
+  </div>
+</div>
+
+<!-- Quick Playbook -->
+<div style="padding:0 32px 16px;">
+  <div class="card">
+    <h2><span>📖</span> Quick Playbook — What Works on Discover Entertainment</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div style="padding:16px;border-radius:10px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);">
+        <div style="font-weight:700;color:var(--green);margin-bottom:10px;font-size:13px;">✓ DO THIS</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+          ✓ Declarative statements — questions are 3.6x rarer<br>
+          ✓ "Officially Confirms/Reveals/Teases" — never "Announces"<br>
+          ✓ 10–14 words / 60–90 chars (hard ceiling ~100)<br>
+          ✓ Power words: <span style="color:var(--green)">officially, new, first, finally</span><br>
+          ✓ Listicles: 10 (flagship), 5, or 8/7/6 — end ", Ranked"<br>
+          ✓ Franchise as the first word (2.8x competitor pattern)<br>
+          ✓ Colons: franchise-first, ≤4 words before the colon
+        </div>
+      </div>
+      <div style="padding:16px;border-radius:10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);">
+        <div style="font-weight:700;color:var(--red);margin-bottom:10px;font-size:13px;">✗ DON'T DO THIS</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.8;">
+          ✗ Question marks (1.5% of competitor titles) & exclamations (1/1,441)<br>
+          ✗ Em-dashes — 0 of 1,441 competitor titles<br>
+          ✗ "You Forgot / You Need to See / Right Now" guilt suffixes (dead: 0-1/318)<br>
+          ✗ Counts over 15 ("22 Things...") — competitors cap at 15<br>
+          ✗ Exceed ~100 characters (5.7% ceiling)<br>
+          ✗ 2+ commas — one comma + "But/And" max<br>
+          ✗ Year in parentheses "(2026)" — years go in "of 2026 So Far" suffixes
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:16px;padding:16px;border-radius:10px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);text-align:center;">
+      <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">The Discover Title Formula</div>
+      <div style="font-size:16px;font-weight:700;color:var(--cyan);font-family:monospace;">[Franchise] Officially [Confirms/Reveals] [Specific Detail]&nbsp;&nbsp;·&nbsp;&nbsp;[10/5/8] [Superlative] [Franchise] [Noun], Ranked</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid" id="mainGrid">
+</div>
+
+<script>
+  const COLORS = {
+    accent: '#6366f1',
+    cyan: '#06b6d4',
+    green: '#22c55e',
+    yellow: '#eab308',
+    red: '#ef4444',
+    purple: '#a855f7',
+    orange: '#f97316',
+    pink: '#ec4899',
+  };
+
+  const CHART_COLORS = [COLORS.accent, COLORS.cyan, COLORS.green, COLORS.yellow, COLORS.orange, COLORS.purple, COLORS.red, COLORS.pink];
+
+  let charts = {};
+
+  async function loadData() {
+    const days = document.getElementById('periodSelect').value;
+    try {
+      const res = await fetch(`/api/report?days=${days}`);
+      const data = await res.json();
+      render(data);
+    } catch (err) {
+      document.getElementById('statsBar').innerHTML = '<div class="stat-card"><div class="stat-label">Error</div><div class="stat-value" style="font-size:16px;">No data yet — run a scan first</div><div class="stat-sub">node src/cli.js scan</div></div>';
+      document.getElementById('mainGrid').innerHTML = '';
+    }
+  }
+
+  function render(data) {
+    renderStats(data);
+    renderGrid(data);
+  }
+
+  function renderStats(data) {
+    const s = data.algorithm_signals || {};
+    const html = `
+      <div class="stat-card">
+        <div class="stat-label">Total Articles</div>
+        <div class="stat-value">${(data.total_articles || 0).toLocaleString()}</div>
+        <div class="stat-sub">${data.total_scans || 0} scans completed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Title Length</div>
+        <div class="stat-value">${s.avgTitleLength || '—'} <span style="font-size:14px;color:var(--muted)">words</span></div>
+        <div class="stat-sub">${s.avgTitleChars || '—'} characters</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Titles With Numbers</div>
+        <div class="stat-value">${s.pctWithNumbers || '—'}%</div>
+        <div class="stat-sub">${s.pctStartsWithNumber || '—'}% start with a number</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Dominant Format</div>
+        <div class="stat-value" style="font-size:22px;">${s.topFormat?.format || '—'}</div>
+        <div class="stat-sub">${s.topFormat?.c || 0} articles</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Top Source</div>
+        <div class="stat-value" style="font-size:18px;">${s.topSource?.source || '—'}</div>
+        <div class="stat-sub">${s.topSource?.c || 0} articles</div>
+      </div>
+    `;
+    document.getElementById('statsBar').innerHTML = html;
+  }
+
+  function renderGrid(data) {
+    // Destroy existing charts
+    Object.values(charts).forEach(c => c.destroy());
+    charts = {};
+
+    let html = '';
+
+    // Format distribution chart
+    html += `<div class="card"><h2><span>📊</span> Format Distribution</h2><div class="chart-wrap"><canvas id="formatChart"></canvas></div></div>`;
+
+    // Title element usage chart
+    html += `<div class="card"><h2><span>🔢</span> Title Element Usage</h2><div class="chart-wrap"><canvas id="elementsChart"></canvas></div></div>`;
+
+    // Power words
+    html += `<div class="card"><h2><span>⚡</span> Top Power Words</h2><div class="pw-grid" id="pwGrid"></div></div>`;
+
+    // Top sources table
+    html += `<div class="card"><h2><span>🏢</span> Who Dominates Discover</h2><div style="max-height:320px;overflow-y:auto;"><table><thead><tr><th>Source</th><th>Count</th><th>Categories</th><th></th></tr></thead><tbody id="sourcesTable"></tbody></table></div></div>`;
+
+    // Title length by format
+    html += `<div class="card"><h2><span>📏</span> Title Length by Format</h2><table><thead><tr><th>Format</th><th>Avg Words</th><th>Avg Chars</th><th>Sample</th></tr></thead><tbody id="titleLenTable"></tbody></table></div>`;
+
+    // Category breakdown
+    html += `<div class="card"><h2><span>📁</span> Category Breakdown</h2><div class="chart-wrap"><canvas id="categoryChart"></canvas></div></div>`;
+
+    // Recent articles
+    html += `<div class="card grid-full"><h2><span>📰</span> Recent Articles</h2><div style="max-height:400px;overflow-y:auto;"><table><thead><tr><th>Title</th><th>Source</th><th>Format</th><th>Words</th><th>Power Words</th></tr></thead><tbody id="articlesTable"></tbody></table></div></div>`;
+
+    document.getElementById('mainGrid').innerHTML = html;
+
+    // Render charts
+    renderFormatChart(data.format_distribution || []);
+    renderElementsChart(data.number_usage || {});
+    renderPowerWords(data.power_words || []);
+    renderSourcesTable(data.top_sources || []);
+    renderTitleLenTable(data.title_length_by_format || []);
+    renderCategoryChart(data.category_breakdown || []);
+    loadArticles();
+  }
+
+  function renderFormatChart(formats) {
+    const ctx = document.getElementById('formatChart');
+    if (!ctx) return;
+    charts.format = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: formats.map(f => f.format || 'unknown'),
+        datasets: [{
+          data: formats.map(f => f.count),
+          backgroundColor: CHART_COLORS,
+          borderWidth: 0,
+          hoverOffset: 8,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'right', labels: { color: '#71717a', font: { size: 12, family: 'Inter' }, padding: 12 } },
+        },
+      }
+    });
+  }
+
+  function renderElementsChart(usage) {
+    const ctx = document.getElementById('elementsChart');
+    if (!ctx || !usage.total) return;
+    const t = usage.total;
+    const items = [
+      { label: 'Has Number', value: usage.with_number },
+      { label: 'Starts with #', value: usage.starts_with_number },
+      { label: 'Has Question?', value: usage.with_question },
+      { label: 'Has Colon:', value: usage.with_colon },
+      { label: 'Has Dash—', value: usage.with_dash },
+    ];
+    charts.elements = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: items.map(i => i.label),
+        datasets: [{
+          data: items.map(i => (i.value / t * 100).toFixed(1)),
+          backgroundColor: [COLORS.accent, COLORS.cyan, COLORS.green, COLORS.yellow, COLORS.purple],
+          borderRadius: 6,
+          barThickness: 40,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#71717a', callback: v => v + '%' }, grid: { color: '#1e1e2e' } },
+          y: { ticks: { color: '#e4e4e7', font: { size: 12, family: 'Inter' } }, grid: { display: false } },
+        }
+      }
+    });
+  }
+
+  function renderPowerWords(words) {
+    const grid = document.getElementById('pwGrid');
+    if (!grid) return;
+    grid.innerHTML = words.slice(0, 24).map(w =>
+      `<div class="pw-item"><span>${w.word}</span><span class="pw-count">${w.count}</span></div>`
+    ).join('');
+  }
+
+  function renderSourcesTable(sources) {
+    const tbody = document.getElementById('sourcesTable');
+    if (!tbody) return;
+    const max = sources[0]?.count || 1;
+    tbody.innerHTML = sources.map(s => `
+      <tr>
+        <td style="font-weight:600;">${s.source || '—'}</td>
+        <td>${s.count}</td>
+        <td><span class="badge badge-cyan">${(s.categories || '').split(',').slice(0, 2).join(', ')}</span></td>
+        <td style="width:120px;"><div class="bar-container"><div class="inline-bar" style="width:${(s.count/max*100)}%"></div></div></td>
+      </tr>
+    `).join('');
+  }
+
+  function renderTitleLenTable(stats) {
+    const tbody = document.getElementById('titleLenTable');
+    if (!tbody) return;
+    tbody.innerHTML = stats.map(t => `
+      <tr>
+        <td><span class="badge badge-accent">${t.format || '?'}</span></td>
+        <td>${t.avg_words}</td>
+        <td>${t.avg_chars}</td>
+        <td style="color:var(--muted)">${t.sample_size} articles</td>
+      </tr>
+    `).join('');
+  }
+
+  function renderCategoryChart(cats) {
+    const ctx = document.getElementById('categoryChart');
+    if (!ctx || !cats.length) return;
+    charts.category = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: cats.map(c => c.category),
+        datasets: [{
+          label: 'Articles',
+          data: cats.map(c => c.count),
+          backgroundColor: COLORS.accent,
+          borderRadius: 6,
+        }, {
+          label: 'With Numbers',
+          data: cats.map(c => c.titles_with_numbers),
+          backgroundColor: COLORS.cyan,
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#71717a', font: { family: 'Inter' } } } },
+        scales: {
+          x: { ticks: { color: '#71717a' }, grid: { display: false } },
+          y: { ticks: { color: '#71717a' }, grid: { color: '#1e1e2e' } },
+        }
+      }
+    });
+  }
+
+  async function loadArticles() {
+    try {
+      const res = await fetch('/api/articles?limit=50');
+      const articles = await res.json();
+      const tbody = document.getElementById('articlesTable');
+      if (!tbody) return;
+
+      const formatBadge = (f) => {
+        const colors = { 'listicle': 'green', 'how-to': 'cyan', 'news': 'yellow', 'explainer': 'purple', 'opinion': 'accent' };
+        return `<span class="badge badge-${colors[f] || 'accent'}">${f || '—'}</span>`;
+      };
+
+      tbody.innerHTML = articles.map(a => {
+        let pw = [];
+        try { pw = JSON.parse(a.power_words || '[]'); } catch {}
+        return `
+          <tr>
+            <td style="max-width:400px;"><a href="${a.url}" target="_blank" style="color:var(--text);text-decoration:none;">${a.title}</a></td>
+            <td style="color:var(--muted);white-space:nowrap;">${a.source || '—'}</td>
+            <td>${formatBadge(a.format)}</td>
+            <td>${a.title_word_count || '—'}</td>
+            <td>${pw.slice(0, 3).map(w => `<span class="badge badge-accent" style="margin:1px;">${w}</span>`).join(' ') || '—'}</td>
+          </tr>
+        `;
+      }).join('');
+    } catch {}
+  }
+
+  async function generateTitles() {
+    const subject = document.getElementById('genSubject').value.trim();
+    const detail = document.getElementById('genDetail').value.trim();
+    const mode = document.getElementById('genMode').value;
+    const el = document.getElementById('genResult');
+    if (!subject || !detail) return;
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, detail, mode }),
+      });
+      const data = await res.json();
+      el.style.display = 'block';
+      const vColor = v => v === 'competitor-grade' ? 'var(--green)' : v === 'neutral' ? 'var(--yellow)' : 'var(--red)';
+      el.innerHTML = (data.candidates || []).map(c => `
+        <div style="display:flex;gap:12px;align-items:center;padding:9px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;cursor:pointer;"
+             onclick="document.getElementById('scoreInput').value=this.querySelector('.gt').textContent;scoreHeadline()"
+             title="Click to run through the full scorer">
+          <span style="font-weight:800;min-width:42px;color:${vColor(c.verdict)}">${c.points >= 0 ? '+' : ''}${c.points}</span>
+          <span class="gt" style="flex:1;font-size:14px;">${c.title}</span>
+          <span class="badge badge-purple">${c.vertical}</span>
+        </div>`).join('') +
+        '<div style="font-size:12px;color:var(--muted);margin-top:6px;">⚠ Verify the claim is actually official before using Confirms/Reveals. Click a title to run the full scorer.</div>';
+    } catch (e) {
+      el.style.display = 'block';
+      el.innerHTML = '<div style="color:var(--red);font-size:13px;">Error generating titles</div>';
+    }
+  }
+
+  function exportData() {
+    const days = document.getElementById('periodSelect').value;
+    window.open(`/api/export?days=${days}`);
+  }
+
+  async function scoreHeadline() {
+    const input = document.getElementById('scoreInput');
+    const title = input.value.trim();
+    if (!title) return;
+
+    try {
+      const res = await fetch('/api/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ headline: title }),
+      });
+      const result = await res.json();
+      const gradeColors = { A: 'var(--green)', B: 'var(--cyan)', C: 'var(--yellow)', D: 'var(--orange)', F: 'var(--red)' };
+      const el = document.getElementById('scoreResult');
+      el.style.display = 'block';
+      el.innerHTML = `
+        <div style="display:flex;gap:24px;align-items:center;padding:16px;background:var(--bg);border-radius:10px;">
+          <div style="text-align:center;min-width:80px;">
+            <div style="font-size:48px;font-weight:800;color:${gradeColors[result.grade]||'var(--muted)'}">${result.grade}</div>
+            <div style="font-size:13px;color:var(--muted)">${result.score}/100</div>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:13px;color:var(--muted);margin-bottom:4px;">${result.classified?.format || ''} · ${result.classified?.title_word_count || 0} words · ${result.classified?.title_char_count || 0} chars</div>
+            ${result.boosts.map(b => `<div style="font-size:13px;color:var(--green);padding:2px 0;">✓ ${b}</div>`).join('')}
+            ${result.tips.map(t => `<div style="font-size:13px;color:var(--yellow);padding:2px 0;">⚠ ${t}</div>`).join('')}
+          </div>
+        </div>
+      `;
+    } catch(e) {
+      document.getElementById('scoreResult').style.display = 'block';
+      document.getElementById('scoreResult').innerHTML = '<div style="color:var(--red);font-size:13px;">Error scoring headline</div>';
+    }
+  }
+
+  // Initial load
+  loadData();
+</script>
+
+</body>
+</html>

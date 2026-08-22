@@ -1,0 +1,8 @@
+node_modules/
+logs/
+data/
+web-dash/
+# proxy credentials live here — never commit
+config.json
+*.tgz
+proxies.txt

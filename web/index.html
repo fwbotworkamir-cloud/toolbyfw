@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FW Title Forge</title>
+<style>
+  :root { --bg:#0c0c0f; --card:#141419; --border:#232330; --text:#e7e7ea; --muted:#8a8a94; --accent:#6366f1; --good:#e7e7ea; --bad:#8a8a94; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,'Segoe UI',Inter,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding:32px 16px; }
+  .wrap { max-width:860px; margin:0 auto; }
+  h1 { font-size:20px; font-weight:800; letter-spacing:-0.4px; }
+  h1 span { color:var(--accent); }
+  .sub { color:var(--muted); font-size:13px; margin:4px 0 28px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:18px; }
+  .card h2 { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); margin-bottom:14px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  input, select { padding:12px 14px; border-radius:8px; border:1.5px solid var(--border); background:var(--bg); color:var(--text); font-size:14px; font-family:inherit; outline:none; }
+  input:focus { border-color:var(--accent); }
+  #subject { flex:2; min-width:220px; } #detail { flex:3; min-width:240px; } #scoreIn { flex:1; min-width:240px; }
+  button { padding:12px 22px; border-radius:8px; border:none; background:var(--accent); color:#fff; font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; }
+  button:hover { opacity:.88; }
+  .cand { display:flex; gap:12px; align-items:center; padding:10px 12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; margin-top:8px; cursor:pointer; }
+  .cand:hover { border-color:var(--accent); }
+  .pts { font-weight:800; min-width:40px; }
+  .grade-good .pts { color:var(--accent); }
+  .vert { font-size:11px; color:var(--muted); border:1px solid var(--border); padding:2px 8px; border-radius:4px; }
+  .hits { margin-top:12px; }
+  .hit { font-size:13px; padding:3px 0; color:var(--muted); }
+  .hit.plus { color:var(--text); }
+  .verdict { font-size:15px; font-weight:800; margin-top:12px; }
+  .verdict em { color:var(--accent); font-style:normal; }
+  .note { font-size:12px; color:var(--muted); margin-top:12px; line-height:1.5; }
+  .rules { font-size:12.5px; color:var(--muted); line-height:1.9; column-count:2; column-gap:32px; }
+  @media (max-width:640px){ .rules{column-count:1} }
+  .rules b { color:var(--text); }
+  footer { text-align:center; color:var(--muted); font-size:11px; padding:24px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>FW <span>Title Forge</span></h1>
+  <div class="sub">Discover-style headlines from the verified competitor formula — 45k-headline corpus, adversarially verified 2026-07.</div>
+
+  <div class="card">
+    <h2>Build a Title</h2>
+    <div class="row">
+      <input id="subject" placeholder="Franchise / subject — e.g. Spider-Man: Brand New Day">
+      <input id="detail" placeholder="News detail — or list noun in Listicle mode" onkeydown="if(event.key==='Enter')build()">
+      <select id="mode"><option value="news">News</option><option value="list">Listicle</option></select>
+      <button onclick="build()">Build</button>
+    </div>
+    <div id="out"></div>
+    <div class="note" id="outNote" style="display:none">⚠ Verify the claim is actually official before shipping a Confirms/Reveals headline. Click a candidate to see its full rule breakdown.</div>
+  </div>
+
+  <div class="card">
+    <h2>Score a Headline</h2>
+    <div class="row">
+      <input id="scoreIn" placeholder="Paste any headline…" onkeydown="if(event.key==='Enter')score()">
+      <button onclick="score()">Score</button>
+    </div>
+    <div id="scoreOut"></div>
+  </div>
+
+  <div class="card">
+    <h2>The Formula</h2>
+    <div class="rules">
+      <b>News:</b> [Franchise] Officially Confirms/Reveals/Teases [Detail]<br>
+      <b>Listicle:</b> [10/5/8] [Superlative] [Franchise] [Noun], Ranked<br>
+      <b>Length:</b> 10–14 words · 60–90 chars · hard ceiling ~100<br>
+      <b>Verbs:</b> Confirms &gt; Reveals &gt; Teases · never Announces/Shares<br>
+      <b>Colons:</b> franchise first, ≤4 words before the colon<br>
+      <b>Counts:</b> 10 flagship · 5 quick · cap 15 · end ", Ranked"<br>
+      <b>Never:</b> em-dashes (0/1,441) · questions · 2+ commas · "(2026)" parens · "You Forgot/Need to See" suffixes<br>
+      <b>Year:</b> only in "of 2026 So Far" freshness suffixes on roundups
+    </div>
+  </div>
+  <footer>FandomWire internal · rules frozen from verified corpus mining · not for search-intent evergreen titles (dated query-matchers win there)</footer>
+</div>
+
+<script>
+// ── Ported from discover-analyzer src/classifier.js + src/cli.js (keep in sync) ──
+const FW_VERTICALS = [
+  ['marvel', ['marvel','mcu','avengers','spider-man','spiderman','x-men','deadpool','wolverine','thor ','loki','fantastic four','venom','daredevil','thunderbolts','doctor doom']],
+  ['dc', [' dc ','dcu','batman','superman','joker','wonder woman','aquaman','james gunn','the flash','suicide squad','peacemaker','supergirl']],
+  ['anime', ['anime','manga','one piece','naruto','dragon ball','jujutsu kaisen','demon slayer','attack on titan','my hero academia','mha','hunter x hunter','studio ghibli','chainsaw man','bleach','solo leveling','one punch man','boruto','black clover','fire force','crunchyroll','shonen','gundam','evangelion']],
+  ['star-wars', ['star wars','mandalorian','jedi','skywalker','ahsoka','grogu','darth']],
+  ['gaming', ['playstation','ps5','xbox','nintendo','video game','gta ','elden ring','call of duty','fortnite','zelda','pokemon','steam ','gamer','esports','twitch']],
+  ['horror', ['horror','stephen king','slasher','a24','blumhouse','conjuring','scream ']],
+  ['tv', ['netflix','hbo','disney+','disney plus','prime video','hulu','apple tv','season ','episode','series finale','showrunner','renewed','spinoff','spin-off','stranger things','game of thrones','house of the dragon','the boys','squid game','reacher','yellowstone','lioness','landman','taylor sheridan','silo','severance','the walking dead','ted lasso','rick and morty']],
+  ['movies', ['box office','trailer','movie','film ','director','sequel','oscar','cinema','blockbuster','imax']],
+  ['wwe', ['wwe','wrestlemania','aew','wrestler','john cena','roman reigns']],
+  ['celebrity', ['celebrity','actor','actress','singer','rapper','taylor swift','kardashian','red carpet','dating','divorce','net worth']],
+];
+function detectVertical(t){ const l=' '+(t||'').toLowerCase()+' '; for(const [v,keys] of FW_VERTICALS) if(keys.some(k=>l.includes(k))) return v; return null; }
+
+function microScore(headline){
+  const t=headline.trim(); const hits=[]; let pts=0;
+  const add=(p,why)=>{pts+=p;hits.push((p>0?'+':'')+p+' '+why)};
+  const words=t.split(/\s+/).filter(w=>/[a-z0-9]/i.test(w));
+  const lead=t.match(/^(?:The\s+)?(\d{1,3})\b/i); const leadN=lead?+lead[1]:null;
+  const isYear=n=>n>=1950&&n<=2039;
+  const leadTime=/^\d+\s+(years?|months?|days?|hours?|minutes?|decades?)\b/i.test(t);
+  if(leadN!=null&&!isYear(leadN)&&!leadTime){
+    if([10,5,8,7,6].includes(leadN)) add(3,'leading count '+leadN+' — 70% of competitor listicles use 10/5/8/7/6');
+    else if(leadN>15) add(-3,'count '+leadN+' — competitors hard-cap at 15');
+    add(2,'digit-first opener — 21% of competitor titles vs 6%');
+  }
+  if(/\d/.test(t)) add(1,'carries a digit — 56% of competitor titles do vs 35%');
+  if(/\(\s*(19|20)\d\d\s*\)/.test(t)) add(-2,'parenthetical year — 0 competitor occurrences');
+  if(/\b\d+\s+years?\s+(later|ago|after)\b/i.test(t)) add(1,'"X Years Later/After" time anchor');
+  if(/,\s*ranked\b/i.test(t)) add(2,'", Ranked" suffix — 5x competitor signature');
+  if(/\bof all time\b/i.test(t)) add(1,'"of All Time" — 3x over-indexed');
+  if(/\b(you forgot|you (probably )?missed|you need to (see|watch)|right now|ever made|in history)\b/i.test(t)) add(-3,'second-person guilt suffix — dead in competitor titles');
+  if(words.length>=10&&words.length<=14) add(2,words.length+' words — inside the 10-14 band');
+  else if(words.length<=7||words.length>=18) add(-2,words.length+' words — competitors halve both tails');
+  if(t.length>110) add(-3,t.length+' chars — ~4x rarer past 110');
+  else if(t.length>100) add(-2,t.length+' chars — past the ~100 ceiling');
+  else if(t.length>=60&&t.length<=90) add(1,t.length+' chars — in the 60-90 target');
+  if(/\bofficially\b/i.test(t)) add(3,'"Officially" — the 31x competitor word');
+  const lastThird=words.slice(Math.floor(words.length*2/3)).join(' ');
+  if(/\b(confirms|reveals|teases)\b/i.test(t)||/\b(confirmed|revealed)\b/i.test(lastThird)) add(2,'confirms/reveals/teases — 3-5x competitor verb');
+  if(/\b(announces|shares)\b/i.test(t)) add(-1,'"announces/shares" — under-indexed; use confirms/reveals');
+  if(/\bbreaks silence\b/i.test(t)) add(-1,'"breaks silence" — gossip-coded, no lift');
+  if(/\bfinally\b/i.test(t)) add(1,'"finally" — 4.5x fandom-payoff word');
+  if(/[—–]/.test(t)) add(-3,'em/en dash — 0 of 1,441 competitor titles');
+  if(t.includes('?')) add(-2,'question mark — 3.6x rarer in competitor titles');
+  if(t.includes('!')) add(-3,'exclamation — 1 of 1,441');
+  if((t.match(/,/g)||[]).length>=2) add(-2,'2+ commas — 3x rarer; one comma + conjunction max');
+  else if(/,\s*but\b/i.test(t)) add(2,'", But" reversal — ~3x competitor pattern');
+  const ci=t.indexOf(':');
+  if(ci>0){ const pre=t.slice(0,ci);
+    if(pre.trim().split(/\s+/).length<=4&&detectVertical(pre)) add(2,'franchise-fronted colon ≤4 words — the competitor colon shape');
+    else if(/\b(review|video|interview|box office|trailer|recap|update|watch)\b/i.test(pre)) add(-2,'label-fronted colon — wire-service style'); }
+  if(/^(why|how|what|who|when|where)\b/i.test(t)) add(-1,'wh-word opener — half the competitor rate');
+  if(detectVertical(words.slice(0,2).join(' '))) add(2,'franchise up front — 2.8x competitor pattern');
+  const verdict=pts>=6?'competitor-grade':pts>=1?'neutral':'off-pattern';
+  return {points:pts,verdict,hits};
+}
+
+const SMALL=new Set(['a','an','the','and','but','or','for','nor','of','on','in','to','at','by','as','with','from']);
+const cap=s=>s.trim().split(/\s+/).map((w,i)=>(i>0&&SMALL.has(w.toLowerCase()))?w.toLowerCase():w.replace(/^\w/,c=>c.toUpperCase())).join(' ');
+const singular=s=>s.replace(/s$/i,'');
+
+function generateTitles(subject,detail,mode){
+  const out=[];
+  if(mode==='list'){
+    const noun=cap(detail);
+    for(const sup of ['Best','Strongest','Greatest']){
+      out.push(`10 ${sup} ${subject} ${noun}, Ranked`,`5 ${sup} ${subject} ${noun}, Ranked`,`The 10 ${sup} ${subject} ${noun} of All Time, Ranked`);
+      if(!subject.includes(':')) out.push(`${subject}: 10 ${sup} ${noun}, Ranked`,`${subject}: 5 ${sup} ${noun}, Ranked`);
+    }
+    out.push(`Every ${subject} ${singular(cap(detail))}, Ranked Weakest to Strongest`);
+  } else {
+    const d=cap(detail.trim().replace(/\.$/,''));
+    for(const v of ['Confirms','Reveals','Teases']) out.push(`${subject} Officially ${v} ${d}`);
+    if(!subject.includes(':')) out.push(`${subject}: ${d}, Officially Confirmed`);
+    out.push(`${subject} Finally Confirms ${d}`);
+  }
+  const seen=new Set();
+  return out.filter(t=>{const k=t.toLowerCase();if(seen.has(k))return false;seen.add(k);return true})
+    .map(title=>({title,...microScore(title),vertical:detectVertical(title)||'other'}))
+    .sort((a,b)=>b.points-a.points);
+}
+
+function build(){
+  const s=document.getElementById('subject').value.trim();
+  const d=document.getElementById('detail').value.trim();
+  if(!s||!d) return;
+  const cands=generateTitles(s,d,document.getElementById('mode').value);
+  document.getElementById('out').innerHTML=cands.map(c=>
+    `<div class="cand ${c.points>=6?'grade-good':''}" onclick="document.getElementById('scoreIn').value=this.querySelector('.t').textContent;score()">`+
+    `<span class="pts">${c.points>=0?'+':''}${c.points}</span><span class="t" style="flex:1">${c.title}</span><span class="vert">${c.vertical}</span></div>`).join('');
+  document.getElementById('outNote').style.display='block';
+}
+
+function score(){
+  const t=document.getElementById('scoreIn').value.trim();
+  if(!t) return;
+  const r=microScore(t);
+  document.getElementById('scoreOut').innerHTML=
+    `<div class="verdict">${r.points>=0?'+':''}${r.points} — <em>${r.verdict.toUpperCase()}</em></div>`+
+    `<div class="hits">${r.hits.map(h=>`<div class="hit ${h.startsWith('+')?'plus':''}">${h}</div>`).join('')}</div>`+
+    `<div class="note">≥ +6 competitor-grade · +1 to +5 neutral · ≤ 0 off-pattern</div>`;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discover Algorithm Report — 2026-07-29</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a; --surface: #111827; --card: #1a2236;
+    --border: #2a3450; --text: #e2e8f0; --muted: #8892a8;
+    --accent: #6366f1; --accent2: #22d3ee; --green: #10b981;
+    --yellow: #f59e0b; --red: #ef4444; --pink: #ec4899;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+  
+  header { text-align: center; margin-bottom: 48px; padding: 40px; background: linear-gradient(135deg, #1a1a3e 0%, #0a0e1a 100%); border-radius: 16px; border: 1px solid var(--border); }
+  header h1 { font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+  header .meta { color: var(--muted); font-size: 0.9rem; }
+  header .meta strong { color: var(--accent2); }
+  
+  .section { margin-bottom: 40px; }
+  .section h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .section h2 .emoji { font-size: 1.4rem; }
+  .section h3 { font-size: 1rem; font-weight: 600; margin: 16px 0 8px; color: var(--accent2); }
+  
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
+  .card .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 4px; }
+  .card .value { font-size: 1.8rem; font-weight: 800; }
+  .card .sub { font-size: 0.8rem; color: var(--muted); }
+  .card .value.green { color: var(--green); }
+  .card .value.accent { color: var(--accent); }
+  .card .value.yellow { color: var(--yellow); }
+  .card .value.cyan { color: var(--accent2); }
+  
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  table th { text-align: left; padding: 10px 12px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); border-bottom: 2px solid var(--border); }
+  table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+  table tr:hover { background: rgba(99,102,241,0.05); }
+  
+  .bar-row { display: flex; align-items: center; gap: 12px; margin: 4px 0; }
+  .bar-label { min-width: 120px; font-size: 0.85rem; }
+  .bar-fill { height: 24px; border-radius: 4px; min-width: 2px; transition: width 0.3s; display: flex; align-items: center; padding: 0 8px; font-size: 0.75rem; font-weight: 600; color: white; }
+  .bar-pct { font-size: 0.8rem; color: var(--muted); min-width: 45px; }
+  
+  .rule-box { background: var(--card); border-radius: 12px; padding: 20px; margin: 12px 0; border-left: 4px solid var(--green); }
+  .rule-box.warn { border-left-color: var(--red); }
+  .rule-box h4 { font-size: 0.95rem; margin-bottom: 6px; }
+  .rule-box p { font-size: 0.85rem; color: var(--muted); }
+  .rule-box .example { background: var(--bg); padding: 10px 14px; border-radius: 6px; margin-top: 8px; font-size: 0.85rem; font-style: italic; color: var(--accent2); }
+  
+  .do-dont { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .do-dont .do, .do-dont .dont { padding: 16px; border-radius: 10px; }
+  .do-dont .do { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); }
+  .do-dont .dont { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); }
+  .do-dont h4 { font-size: 0.85rem; margin-bottom: 8px; }
+  .do-dont .do h4 { color: var(--green); }
+  .do-dont .dont h4 { color: var(--red); }
+  .do-dont ul { list-style: none; padding: 0; }
+  .do-dont li { font-size: 0.85rem; padding: 4px 0; color: var(--muted); }
+  .do-dont li::before { margin-right: 6px; }
+  .do-dont .do li::before { content: '✓'; color: var(--green); }
+  .do-dont .dont li::before { content: '✗'; color: var(--red); }
+  
+  .scorer { background: var(--card); border-radius: 12px; padding: 24px; border: 1px solid var(--border); }
+  .scorer input { width: 100%; padding: 14px 16px; border-radius: 8px; border: 2px solid var(--border); background: var(--bg); color: var(--text); font-size: 1rem; font-family: 'Inter', sans-serif; outline: none; transition: border 0.2s; }
+  .scorer input:focus { border-color: var(--accent); }
+  .scorer button { margin-top: 12px; padding: 10px 24px; border-radius: 8px; border: none; background: var(--accent); color: white; font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: opacity 0.2s; }
+  .scorer button:hover { opacity: 0.85; }
+  .score-result { margin-top: 16px; display: none; }
+  .score-grade { font-size: 3rem; font-weight: 800; text-align: center; padding: 16px; }
+  .score-grade.A { color: var(--green); }
+  .score-grade.B { color: var(--accent2); }
+  .score-grade.C { color: var(--yellow); }
+  .score-grade.D { color: #f97316; }
+  .score-grade.F { color: var(--red); }
+  .score-tips { margin-top: 12px; }
+  .score-tips li { font-size: 0.85rem; padding: 3px 0; }
+  .score-tips li.boost { color: var(--green); }
+  .score-tips li.tip { color: var(--yellow); }
+
+  .playbook-formula { background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(34,211,238,0.1)); padding: 24px; border-radius: 12px; border: 1px solid var(--accent); margin: 16px 0; text-align: center; }
+  .playbook-formula code { font-size: 1.1rem; color: var(--accent2); font-weight: 600; display: block; padding: 12px; }
+
+  .pw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .pw-item { display: flex; justify-content: space-between; padding: 8px 12px; background: var(--card); border-radius: 6px; font-size: 0.85rem; }
+  .pw-item .word { font-weight: 600; }
+  .pw-item .count { color: var(--muted); }
+
+  @media (max-width: 768px) {
+    .cards { grid-template-columns: 1fr 1fr; }
+    .do-dont { grid-template-columns: 1fr; }
+    header h1 { font-size: 1.5rem; }
+  }
+  @media print { body { background: white; color: #111; } .card, .rule-box, .scorer { border: 1px solid #ddd; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>⚡ Discover Entertainment Algorithm Report</h1>
+  <div class="meta">
+    Generated July 30, 2026 · 
+    <strong>918</strong> articles analyzed · 
+    18 scans · Last 30 days
+  </div>
+</header>
+
+<!-- KPI CARDS -->
+<div class="cards">
+  <div class="card">
+    <div class="label">Total Articles</div>
+    <div class="value accent">918</div>
+    <div class="sub">entertainment vertical</div>
+  </div>
+  <div class="card">
+    <div class="label">Optimal Title Length</div>
+    <div class="value green">11.7</div>
+    <div class="sub">words · 70.1 characters</div>
+  </div>
+  <div class="card">
+    <div class="label">% With Numbers</div>
+    <div class="value yellow">35.1%</div>
+    <div class="sub">322 articles</div>
+  </div>
+  <div class="card">
+    <div class="label">#1 Power Word</div>
+    <div class="value cyan">new</div>
+    <div class="sub">128 uses (13.9%)</div>
+  </div>
+  <div class="card">
+    <div class="label">Top Source</div>
+    <div class="value" style="font-size:1.1rem;color:var(--pink)">collider.com</div>
+    <div class="sub">21 articles</div>
+  </div>
+</div>
+
+<!-- HEADLINE SCORER -->
+<div class="section">
+  <h2><span class="emoji">🎯</span> Headline Scorer</h2>
+  <p style="color:var(--muted);margin-bottom:12px;font-size:0.9rem;">Paste your headline below to see how it scores against the algorithm patterns.</p>
+  <div class="scorer">
+    <input type="text" id="headline-input" placeholder="Type or paste your headline here..." />
+    <button onclick="scoreHeadline()">Score This Headline</button>
+    <div class="score-result" id="score-result"></div>
+  </div>
+</div>
+
+<!-- THE PLAYBOOK -->
+<div class="section">
+  <h2><span class="emoji">📖</span> The Content Team Playbook</h2>
+  
+  <div class="playbook-formula">
+    <div style="font-size:0.85rem;color:var(--muted);margin-bottom:8px;">THE DISCOVER ENTERTAINMENT TITLE FORMULA</div>
+    <code>[Celebrity/Property] [Action Verb] [Specific Detail] — [Reaction/Context]</code>
+    <div style="font-size:0.8rem;color:var(--muted);margin-top:8px;">60.3% of all Discover entertainment articles use this emdash structure</div>
+  </div>
+
+  <div class="do-dont">
+    <div class="do">
+      <h4>✓ DO THIS (wins Discover)</h4>
+      <ul>
+        <li>Write declarative statements (73.8% of winners)</li>
+        <li>Use emdash (—) to separate hook from context</li>
+        <li>Keep titles at 11.7 words / 70.1 chars</li>
+        <li>Include "new", "first", "best", or "exclusive"</li>
+        <li>Embed numbers mid-title for specificity</li>
+        <li>Name specific people, shows, movies</li>
+        <li>Use colons for franchise content (24.3%)</li>
+      </ul>
+    </div>
+    <div class="dont">
+      <h4>✗ DON'T DO THIS (underperforms)</h4>
+      <ul>
+        <li>Write question headlines (only 5.3%)</li>
+        <li>Start titles with numbers like "10 Best..." (6.4%)</li>
+        <li>Write how-to content (0.8% — wrong intent)</li>
+        <li>Write vague "You won't believe..." bait</li>
+        <li>Exceed 90 characters (gets truncated)</li>
+        <li>Use opinion/editorial format (0.7%)</li>
+        <li>Write generic descriptions without specifics</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Title Rules by the Numbers</h3>
+  <div class="rule-box">
+    <h4>📏 Rule 1: 11.7 words, 70.1 characters</h4>
+    <p>The average Discover entertainment title is exactly 11.7 words. Titles over 90 characters get truncated in the feed. Stay between 12-16 words.</p>
+  </div>
+  <div class="rule-box">
+    <h4>➖ Rule 2: Use the emdash (—) — 60.3% do</h4>
+    <p>The most common title structure separates the hook from context with a dash or emdash. This is THE Discover format.</p>
+    <div class="example">"Dakota Johnson stuns as Marilyn Monroe in new film — first trailer drops"</div>
+  </div>
+  <div class="rule-box">
+    <h4>🆕 Rule 3: "New" is the #1 word — 13.9% of titles</h4>
+    <p>Discover's core value proposition is showing users things they haven't seen. "New" directly signals this.</p>
+    <div class="example">"Netflix reveals new season 3 premiere date for hit drama"</div>
+  </div>
+  <div class="rule-box">
+    <h4>🔢 Rule 4: Numbers embedded, not leading — 36.9% contain, only 6.4% start</h4>
+    <p>Numbers add specificity ("$285M opening weekend") but starting with them ("10 Ways to...") underperforms.</p>
+    <div class="example">"'Spider-Man: Brand New Day' swings to $285M opening weekend — a franchise record"</div>
+  </div>
+  <div class="rule-box warn">
+    <h4>❓ Rule 5: Avoid questions — only 5.3% make the cut</h4>
+    <p>Discover rewards answers, not questions. Convert "Why did X happen?" into "X happened because Y — here's what it means."</p>
+  </div>
+</div>
+
+<!-- FORMAT DISTRIBUTION -->
+<div class="section">
+  <h2><span class="emoji">📊</span> What Format Wins</h2>
+  <div class="bar-row">
+      <span class="bar-label">general</span>
+      <div class="bar-fill" style="width:309.2px;background:var(--accent)">77.3%</div>
+      <span class="bar-pct">710</span>
+    </div>
+  <div class="bar-row">
+      <span class="bar-label">news</span>
+      <div class="bar-fill" style="width:27.2px;background:var(--green)">6.8%</div>
+      <span class="bar-pct">62</span>
+    </div>
+  <div class="bar-row">
+      <span class="bar-label">listicle</span>
+      <div class="bar-fill" style="width:18.8px;background:var(--yellow)">4.7%</div>
+      <span class="bar-pct">43</span>
+    </div>
+  <div class="bar-row">
+      <span class="bar-label">review</span>
+      <div class="bar-fill" style="width:10.8px;background:var(--accent2)"></div>
+      <span class="bar-pct">25</span>
+    </div>
+  <div class="bar-row">
+      <span class="bar-label">explainer</span>
+      <div class="bar-fill" style="width:8.4px;background:var(--muted)"></div>
+      <span class="bar-pct">19</span>
+    </div>
+  <div class="bar-row">
+      <span class="bar-label">question-bait</span>
+      <div class="bar-fill" style="width:8.4px;background:var(--red)"></div>
+      <span class="bar-pct">19</span>
+    </div>
+  <div class="bar-row">
+      <span class="bar-label">narrative</span>
+      <div class="bar-fill" style="width:8px;background:var(--muted)"></div>
+      <span class="bar-pct">15</span>
+    </div>
+  <div class="bar-row">
+      <span class="bar-label">guide</span>
+      <div class="bar-fill" style="width:8px;background:var(--muted)"></div>
+      <span class="bar-pct">10</span>
+    </div>
+  <div class="bar-row">
+      <span class="bar-label">opinion</span>
+      <div class="bar-fill" style="width:8px;background:var(--muted)"></div>
+      <span class="bar-pct">9</span>
+    </div>
+  <div class="bar-row">
+      <span class="bar-label">how-to</span>
+      <div class="bar-fill" style="width:8px;background:var(--muted)"></div>
+      <span class="bar-pct">6</span>
+    </div>
+  
+  <h3>Examples by Format</h3>
+  <table>
+    <tr><th>Format</th><th>Share</th><th>Example Title</th><th>Source</th></tr>
+    <tr><td><strong>general</strong></td><td>77.3%</td><td style="color:var(--accent2)">Madison Beer Engagement Ring Details : Cut , Cost , Carats</td><td style="color:var(--muted)">usmagazine.com</td></tr>
+    <tr><td><strong>news</strong></td><td>6.8%</td><td style="color:var(--accent2)">House of the Dragon Fabien Frankel reveals deleted scenes that could have totally changed Criston Cole</td><td style="color:var(--muted)">winteriscoming.net</td></tr>
+    <tr><td><strong>listicle</strong></td><td>4.7%</td><td style="color:var(--accent2)">5 Best Dark Western Movies , Ranked</td><td style="color:var(--muted)">slashfilm.com</td></tr>
+    <tr><td><strong>review</strong></td><td>2.7%</td><td style="color:var(--accent2)">Tony review : Charming film about Anthony Bourdain youth dodges cliché</td><td style="color:var(--muted)">radiotimes.com</td></tr>
+    <tr><td><strong>explainer</strong></td><td>2.1%</td><td style="color:var(--accent2)">Why Did Rachel Wolfson Call Out Steve - O And Wee - Man ?</td><td style="color:var(--muted)">brobible.com</td></tr>
+    <tr><td><strong>question-bait</strong></td><td>2.1%</td><td style="color:var(--accent2)">If Ariana Grande Is Hanging Out With Her Ex , Why Cant I ?</td><td style="color:var(--muted)">harpersbazaar.com</td></tr>
+    <tr><td><strong>narrative</strong></td><td>1.6%</td><td style="color:var(--accent2)">Inside Jared Leto relationship history with several very famous exes</td><td style="color:var(--muted)">hellomagazine.com</td></tr>
+    <tr><td><strong>guide</strong></td><td>1.1%</td><td style="color:var(--accent2)">TV Buying Guide 2026 : Everything You Need to Know</td><td style="color:var(--muted)">allthat.news24.com</td></tr>
+    <tr><td><strong>opinion</strong></td><td>1%</td><td style="color:var(--accent2)">Why Some Fictional Character Names Become Unforgettable – Inside Pulse</td><td style="color:var(--muted)">insidepulse.com</td></tr>
+    <tr><td><strong>how-to</strong></td><td>0.7%</td><td style="color:var(--accent2)">How to Watch  Yaga  in the U . S . | Marie Claire</td><td style="color:var(--muted)">marieclaire.com</td></tr>
+  </table>
+</div>
+
+<!-- POWER WORDS -->
+<div class="section">
+  <h2><span class="emoji">⚡</span> Power Words That Trigger Discover</h2>
+  <p style="color:var(--muted);margin-bottom:16px;font-size:0.9rem;">These words appear most frequently in entertainment articles that make it into Google's content ecosystem. Use them naturally — don't force them.</p>
+  <div class="pw-grid">
+    <div class="pw-item"><span class="word">🔥 new</span><span class="count">128</span></div>
+    <div class="pw-item"><span class="word">🔥 first</span><span class="count">48</span></div>
+    <div class="pw-item"><span class="word">🔥 best</span><span class="count">44</span></div>
+    <div class="pw-item"><span class="word">free</span><span class="count">14</span></div>
+    <div class="pw-item"><span class="word">now</span><span class="count">12</span></div>
+    <div class="pw-item"><span class="word">just</span><span class="count">12</span></div>
+    <div class="pw-item"><span class="word">inside</span><span class="count">9</span></div>
+    <div class="pw-item"><span class="word">top</span><span class="count">9</span></div>
+    <div class="pw-item"><span class="word">doctor</span><span class="count">7</span></div>
+    <div class="pw-item"><span class="word">only</span><span class="count">7</span></div>
+    <div class="pw-item"><span class="word">finally</span><span class="count">5</span></div>
+    <div class="pw-item"><span class="word">update</span><span class="count">5</span></div>
+    <div class="pw-item"><span class="word">official</span><span class="count">5</span></div>
+    <div class="pw-item"><span class="word">actually</span><span class="count">4</span></div>
+    <div class="pw-item"><span class="word">stop</span><span class="count">4</span></div>
+    <div class="pw-item"><span class="word">perfect</span><span class="count">3</span></div>
+    <div class="pw-item"><span class="word">today</span><span class="count">3</span></div>
+    <div class="pw-item"><span class="word">revealed</span><span class="count">3</span></div>
+    <div class="pw-item"><span class="word">massive</span><span class="count">3</span></div>
+    <div class="pw-item"><span class="word">latest</span><span class="count">3</span></div>
+  </div>
+</div>
+
+<!-- TOP SOURCES -->
+<div class="section">
+  <h2><span class="emoji">🏢</span> Who Dominates Entertainment Discover</h2>
+  <p style="color:var(--muted);margin-bottom:12px;font-size:0.9rem;">Study these sources — their title patterns are what the algorithm rewards.</p>
+  <table>
+    <tr><th>Rank</th><th>Source</th><th>Articles</th><th>Share</th></tr>
+    <tr>
+      <td>1</td>
+      <td><strong>collider.com</strong></td>
+      <td>21</td>
+      <td>2.3%</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><strong>screenrant.com</strong></td>
+      <td>18</td>
+      <td>2.0%</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><strong>dailymail.com</strong></td>
+      <td>16</td>
+      <td>1.7%</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><strong>cinemablend.com</strong></td>
+      <td>13</td>
+      <td>1.4%</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td><strong>comicbook.com</strong></td>
+      <td>13</td>
+      <td>1.4%</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td><strong>comingsoon.net</strong></td>
+      <td>13</td>
+      <td>1.4%</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td><strong>forbes.com</strong></td>
+      <td>11</td>
+      <td>1.2%</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td><strong>femalefirst.co.uk</strong></td>
+      <td>10</td>
+      <td>1.1%</td>
+    </tr>
+    <tr>
+      <td>9</td>
+      <td><strong>movieweb.com</strong></td>
+      <td>10</td>
+      <td>1.1%</td>
+    </tr>
+    <tr>
+      <td>10</td>
+      <td><strong>aol.co.uk</strong></td>
+      <td>9</td>
+      <td>1.0%</td>
+    </tr>
+    <tr>
+      <td>11</td>
+      <td><strong>slashfilm.com</strong></td>
+      <td>9</td>
+      <td>1.0%</td>
+    </tr>
+    <tr>
+      <td>12</td>
+      <td><strong>allkpop.com</strong></td>
+      <td>8</td>
+      <td>0.9%</td>
+    </tr>
+    <tr>
+      <td>13</td>
+      <td><strong>deadline.com</strong></td>
+      <td>8</td>
+      <td>0.9%</td>
+    </tr>
+    <tr>
+      <td>14</td>
+      <td><strong>ibtimes.co.uk</strong></td>
+      <td>8</td>
+      <td>0.9%</td>
+    </tr>
+    <tr>
+      <td>15</td>
+      <td><strong>mirror.co.uk</strong></td>
+      <td>8</td>
+      <td>0.9%</td>
+    </tr>
+    <tr>
+      <td>16</td>
+      <td><strong>superherohype.com</strong></td>
+      <td>8</td>
+      <td>0.9%</td>
+    </tr>
+    <tr>
+      <td>17</td>
+      <td><strong>billboard.com</strong></td>
+      <td>6</td>
+      <td>0.7%</td>
+    </tr>
+    <tr>
+      <td>18</td>
+      <td><strong>boredpanda.com</strong></td>
+      <td>6</td>
+      <td>0.7%</td>
+    </tr>
+    <tr>
+      <td>19</td>
+      <td><strong>decider.com</strong></td>
+      <td>6</td>
+      <td>0.7%</td>
+    </tr>
+    <tr>
+      <td>20</td>
+      <td><strong>pagesix.com</strong></td>
+      <td>6</td>
+      <td>0.7%</td>
+    </tr>
+  </table>
+</div>
+
+<!-- TITLE ELEMENTS -->
+<div class="section">
+  <h2><span class="emoji">🔢</span> Title Element Usage</h2>
+  <div class="cards" style="grid-template-columns: repeat(5, 1fr);">
+    <div class="card"><div class="label">Has Number</div><div class="value green">35.1%</div></div>
+    <div class="card"><div class="label">Starts w/ Number</div><div class="value yellow">4.4%</div></div>
+    <div class="card"><div class="label">Has Question</div><div class="value" style="color:var(--red)">4.5%</div></div>
+    <div class="card"><div class="label">Has Colon</div><div class="value cyan">24.9%</div></div>
+    <div class="card"><div class="label">Has Dash</div><div class="value accent">18.3%</div></div>
+  </div>
+</div>
+
+<!-- SENTIMENT -->
+<div class="section">
+  <h2><span class="emoji">💭</span> Sentiment Distribution</h2>
+  <div class="bar-row">
+      <span class="bar-label">neutral</span>
+      <div class="bar-fill" style="width:352.8px;background:var(--muted)">88.2%</div>
+      <span class="bar-pct">810</span>
+    </div>
+  <div class="bar-row">
+      <span class="bar-label">positive</span>
+      <div class="bar-fill" style="width:30.4px;background:var(--green)">7.6%</div>
+      <span class="bar-pct">70</span>
+    </div>
+  <div class="bar-row">
+      <span class="bar-label">negative</span>
+      <div class="bar-fill" style="width:16.4px;background:var(--red)">4.1%</div>
+      <span class="bar-pct">38</span>
+    </div>
+</div>
+
+<footer style="text-align:center;padding:40px 0;color:var(--muted);font-size:0.8rem;">
+  Generated by Discover Analyzer · 918 articles · 2026-07-29
+</footer>
+
+</div>
+
+<script>
+// Headline scorer (client-side version using the benchmarks from the report)
+const POWER_WORDS = [];
+const BENCHMARKS = {
+  avgWords: 11.7,
+  avgChars: 70.1,
+};
+
+const POWER = ['new','best','first','now','just','inside','top','exclusive','today','free',
+  'revealed','limited','latest','official','update','breaking','urgent','secret','hidden',
+  'surprising','unexpected','shocking','truth','worst','ultimate','essential','proven',
+  'amazing','incredible','stunning','beautiful','terrifying','heartbreaking','massive','epic',
+  'expert','study','confirmed','only','rare','leaked','never before','avoid','never','warning','danger','risk'];
+
+function scoreHeadline() {
+  const input = document.getElementById('headline-input');
+  const title = input.value.trim();
+  if (!title) return;
+
+  const lower = title.toLowerCase();
+  const words = lower.split(/\s+/);
+  let score = 50;
+  const boosts = [];
+  const tips = [];
+
+  // Word count
+  const wDiff = Math.abs(words.length - BENCHMARKS.avgWords);
+  if (wDiff <= 2) { score += 10; boosts.push('Title length in the sweet spot (' + words.length + ' words)'); }
+  else if (wDiff <= 4) { score += 5; }
+  else { score -= 5; tips.push('Aim for ~' + BENCHMARKS.avgWords + ' words (yours: ' + words.length + ')'); }
+
+  // Char count
+  if (title.length > 90) { score -= 10; tips.push('May get truncated (>' + title.length + ' chars)'); }
+  else if (Math.abs(title.length - BENCHMARKS.avgChars) <= 10) { score += 5; boosts.push('Character count optimal'); }
+
+  // Power words
+  const found = POWER.filter(w => lower.includes(w));
+  if (found.length > 0) { score += Math.min(found.length * 5, 15); boosts.push('Power words: ' + found.join(', ')); }
+  else { tips.push('Add a power word: new, first, best, exclusive, revealed'); }
+
+  // Dash
+  if (/[—–\-]/.test(title) && title.split(/[—–\-]/).length > 1) { score += 5; boosts.push('Uses dash separator (60% of winners)'); }
+  else { tips.push('Add an emdash (—) to separate hook from context'); }
+
+  // Number
+  if (/\d/.test(title) && !/^\d/.test(title)) { score += 5; boosts.push('Embedded number adds specificity'); }
+  else if (/^\d/.test(title)) { tips.push('Starting with number is weak — embed it instead'); }
+
+  // Question
+  if (title.includes('?')) { score -= 5; tips.push('Questions underperform — try declarative'); }
+
+  // "new" bonus
+  if (lower.includes('new')) { score += 5; boosts.push('"New" is the #1 Discover trigger'); }
+
+  // Emotion
+  const emotions = ['shocking','terrifying','heartbreaking','amazing','incredible','stunning','outrage','slams','blasts'];
+  const emo = emotions.filter(e => lower.includes(e));
+  if (emo.length) { score += 5; boosts.push('Emotional triggers: ' + emo.join(', ')); }
+
+  score = Math.max(0, Math.min(100, score));
+  const grade = score >= 80 ? 'A' : score >= 65 ? 'B' : score >= 50 ? 'C' : score >= 35 ? 'D' : 'F';
+
+  const result = document.getElementById('score-result');
+  result.style.display = 'block';
+  result.innerHTML = '<div class="score-grade ' + grade + '">' + grade + ' (' + score + '/100)</div>'
+    + '<ul class="score-tips">'
+    + boosts.map(b => '<li class="boost">✓ ' + b + '</li>').join('')
+    + tips.map(t => '<li class="tip">⚠ ' + t + '</li>').join('')
+    + '</ul>';
+}
+
+document.getElementById('headline-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') scoreHeadline();
+});
+</script>
+</body>
+</html>

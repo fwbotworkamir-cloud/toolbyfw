@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Topic Intelligence — Discover Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0a0a0f; --card:#12121a; --border:#1e1e2e; --text:#e4e4e7; --muted:#71717a; --accent:#6366f1; --accent-glow:rgba(99,102,241,0.15); --green:#22c55e; --yellow:#eab308; --cyan:#06b6d4; --purple:#a855f7; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',-apple-system,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+  .header { padding:24px 32px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+  .header h1 { font-size:20px; font-weight:800; letter-spacing:-0.5px; background:linear-gradient(135deg,var(--accent),var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .header-controls { display:flex; gap:12px; align-items:center; }
+  .header-controls select, .header-controls a { background:var(--card); color:var(--text); border:1px solid var(--border); padding:8px 16px; border-radius:8px; font-size:13px; text-decoration:none; cursor:pointer; font-family:inherit; }
+  .header-controls a:hover { border-color:var(--accent); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:24px 32px; }
+  @media (max-width:900px){ .grid{grid-template-columns:1fr} }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:24px; }
+  .card h2 { font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:6px; }
+  .card .hint { font-size:12px; color:var(--muted); margin-bottom:16px; line-height:1.5; }
+  table { width:100%; border-collapse:collapse; }
+  th { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); }
+  td { padding:9px 10px; font-size:13px; border-bottom:1px solid rgba(30,30,46,0.5); }
+  tr:hover td { background:rgba(99,102,241,0.04); }
+  .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; background:var(--accent-glow); color:var(--accent); }
+  .own { font-weight:700; color:var(--green); }
+  .lane { color:var(--yellow); font-weight:700; }
+  .bar-container { background:var(--border); border-radius:3px; height:6px; width:100%; }
+  .inline-bar { height:6px; border-radius:3px; background:linear-gradient(90deg,var(--accent),var(--cyan)); }
+  .loading { text-align:center; color:var(--muted); padding:60px 0; font-size:14px; }
+  .foot { padding:0 32px 32px; color:var(--muted); font-size:12px; line-height:1.6; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎯 Topic Intelligence</h1>
+  <div class="header-controls">
+    <select id="daysSel" onchange="load()">
+      <option value="7">Last 7 days</option>
+      <option value="14" selected>Last 14 days</option>
+      <option value="30">Last 30 days</option>
+    </select>
+    <a href="/">← Dashboard</a>
+  </div>
+</div>
+
+<div class="grid" id="grid"><div class="loading">Loading topic data…</div></div>
+
+<div class="foot">
+  <b>Reading the numbers:</b> "own" = competitor articles ÷ field articles — high means the Discover winners disproportionately bet on this topic vs the general firehose.
+  Rising topics with low competitor coverage are open lanes. This measures the winners' revealed editorial bets, not Discover impression data.
+</div>
+
+<script>
+async function load() {
+  const days = document.getElementById('daysSel').value;
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '<div class="loading">Loading topic data…</div>';
+  try {
+    const t = await (await fetch('/api/topics?days=' + days)).json();
+    // trend vs previous snapshot (captured after each collection cycle)
+    let prevBets = {};
+    try {
+      const hist = await (await fetch('/api/topics/history')).json();
+      const prev = hist[hist.length - 2] || hist[hist.length - 1];
+      if (prev) for (const b of prev.bets) prevBets[b.topic.toLowerCase()] = b.comp_articles;
+    } catch {}
+    const trend = (topic, now) => {
+      const p = prevBets[topic.toLowerCase()];
+      if (p === undefined) return '';
+      if (now > p) return ` <span style="color:var(--green);font-size:11px">▲${now - p}</span>`;
+      if (now < p) return ` <span style="color:var(--muted);font-size:11px">▼${p - now}</span>`;
+      return '';
+    };
+    const maxBet = t.bets[0]?.comp_articles || 1;
+    let rid = 0;
+    const exRow = (ex, cols) => {
+      if (!ex || !ex.length) return ['', ''];
+      const id = 'ex' + (rid++);
+      const rows = ex.map(e => `<div style="padding:4px 0;border-top:1px solid rgba(255,255,255,.06)">
+        <span style="color:var(--text)">${e.title}</span>
+        <span style="color:var(--muted);font-size:.85em"> — ${e.source} · ${e.hours_ago}h ago</span></div>`).join('');
+      return [
+        ` <span style="cursor:pointer;color:var(--cyan);font-size:.8em" onclick="document.getElementById('${id}').style.display=document.getElementById('${id}').style.display==='none'?'table-row':'none'">▸ headlines</span>`,
+        `<tr id="${id}" style="display:none"><td colspan="${cols}" style="padding:6px 14px 10px;background:rgba(255,255,255,.02)">${rows}</td></tr>`,
+      ];
+    };
+    grid.innerHTML = `
+      <div class="card">
+        <h2>🏆 Competitor Bets</h2>
+        <div class="hint">What the Discover-winning fandom sites cover most — ${t.comp_articles.toLocaleString()} competitor articles in the last ${t.days} days.</div>
+        <table><thead><tr><th>Topic</th><th>Comp</th><th>Field</th><th>Own</th><th></th></tr></thead><tbody>
+        ${t.bets.map(b => {
+          const own = b.field_articles > 0 ? (b.comp_articles / b.field_articles) : b.comp_articles;
+          const [toggle, detail] = exRow(b.examples, 5);
+          return `<tr>
+            <td style="font-weight:600">${b.topic}${trend(b.topic, b.comp_articles)} ${b.vertical !== '—' ? `<span class="badge">${b.vertical}</span>` : ''}${toggle}</td>
+            <td>${b.comp_articles}</td><td style="color:var(--muted)">${b.field_articles}</td>
+            <td class="${own >= 0.3 ? 'own' : ''}">${own >= 1 ? own.toFixed(1) + 'x' : (own * 100).toFixed(0) + '%'}</td>
+            <td style="width:90px"><div class="bar-container"><div class="inline-bar" style="width:${b.comp_articles / maxBet * 100}%"></div></div></td>
+          </tr>${detail}`;
+        }).join('')}
+        </tbody></table>
+      </div>
+      <div class="card">
+        <h2>🚀 Rising Now</h2>
+        <div class="hint">48-hour velocity vs the prior period, stable sources only. <span class="lane">Yellow count</span> = under-covered by competitors → open lane.</div>
+        <table><thead><tr><th>Topic</th><th>48h</th><th>Velocity</th><th>Comp cover</th></tr></thead><tbody>
+        ${t.rising.map(r => {
+          const [toggle, detail] = exRow(r.examples, 4);
+          return `<tr>
+          <td style="font-weight:600">${r.topic} ${r.vertical !== '—' ? `<span class="badge">${r.vertical}</span>` : ''}${toggle}</td>
+          <td>${r.last48h}</td><td style="font-weight:700;color:var(--cyan)">${r.velocity}x</td>
+          <td class="${r.comp_covering <= 2 ? 'lane' : ''}">${r.comp_covering}${r.comp_covering <= 2 ? ' · open lane' : ''}</td>
+        </tr>${detail}`;}).join('')}
+        </tbody></table>
+      </div>
+      <div class="card">
+        <h2>🔥 Hot Now — last 6 hours</h2>
+        <div class="hint">Published in the last 6h (publish-time basis). The fastest lane — cover before it saturates.</div>
+        <table><thead><tr><th>Topic</th><th>6h</th><th>Velocity</th><th>Comp cover</th></tr></thead><tbody>
+        ${!(t.hot_now || []).length ? '<tr><td colspan="4" style="color:var(--muted);padding:14px">Koi 6-hour wave abhi trigger nahi hui — window thin hoti hai off-peak hours mein. Rising Now (48h) upar dekho.</td></tr>' : ''}
+        ${(t.hot_now || []).map(h => {
+          const [toggle, detail] = exRow(h.examples, 4);
+          return `<tr>
+          <td style="font-weight:600">${h.topic} ${h.vertical !== '—' ? `<span class="badge">${h.vertical}</span>` : ''}${toggle}</td>
+          <td>${h.last6h}</td><td style="font-weight:700;color:var(--cyan)">${h.velocity}x</td>
+          <td class="${h.comp_covering <= 2 ? 'lane' : ''}">${h.comp_covering}${h.comp_covering <= 2 ? ' · open lane' : ''}</td>
+        </tr>${detail}`;}).join('')}
+        </tbody></table>
+      </div>
+      <div class="card">
+        <h2>⚡ Breaking — last 2 hours</h2>
+        <div class="hint">Published in the last 2h — the freshest wave. <span class="lane">Open lane</span> = competitors haven't jumped yet → publish first for the win.</div>
+        <table><thead><tr><th>Topic</th><th>2h</th><th>Comp cover</th></tr></thead><tbody>
+        ${!(t.breaking || []).length ? '<tr><td colspan="3" style="color:var(--muted);padding:14px">Abhi koi breaking wave nahi — 2-ghante ki window off-peak mein khali rehti hai. Hot Now (6h) dekho.</td></tr>' : ''}
+        ${(t.breaking || []).map(b => {
+          const [toggle, detail] = exRow(b.examples, 3);
+          return `<tr>
+          <td style="font-weight:600">${b.topic} ${b.vertical !== '—' ? `<span class="badge">${b.vertical}</span>` : ''}${toggle}</td>
+          <td style="font-weight:700;color:var(--cyan)">${b.last2h}</td>
+          <td class="${b.comp_covering <= 2 ? 'lane' : ''}">${b.comp_covering}${b.comp_covering <= 2 ? ' · open lane' : ''}</td>
+        </tr>${detail}`;}).join('')}
+        </tbody></table>
+      </div>`;
+  } catch (e) {
+    console.error('topics render failed:', e);
+    grid.innerHTML = '<div class="loading">No data — is the collector running?</div>';
+  }
+}
+load();
+</script>
+</body>
+</html>
