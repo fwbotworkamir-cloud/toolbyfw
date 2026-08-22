@@ -29,6 +29,13 @@ const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
 const classifier = new Classifier();
 const proxyManager = new ProxyManager(config.proxies);
+const tuning = config.performance || {};
+const limit = (value, fallback, max = 16) => Math.min(Math.max(Math.floor(Number(value) || fallback), 1), max);
+const GDELT_CONCURRENCY = limit(tuning.gdeltConcurrency, 6);
+const GOOGLE_CONCURRENCY = limit(tuning.googleConcurrency, 3);
+const RSS_CONCURRENCY = limit(tuning.rssConcurrency, 6);
+const CHECKPOINT_EVERY = limit(tuning.checkpointEvery, 25, 200);
+const networkStats = { requests: 0, retries: 0, failures: 0 };
 
 // ─── DISCOVER-DOMINANT ENTERTAINMENT SOURCES ───────────────────
 // These are the publishers that appear most frequently in Discover's
@@ -224,21 +231,38 @@ const RSS_FEEDS = [
 
 // ─── FETCH HELPERS ─────────────────────────────────────────────
 
+const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 16, maxFreeSockets: 8 });
+const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 16, maxFreeSockets: 8 });
+
+function collectResponse(res, url, fetchAgain, resolve, reject) {
+  if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+    res.resume();
+    return fetchAgain(new URL(res.headers.location, url).toString()).then(resolve, reject);
+  }
+  if (res.statusCode < 200 || res.statusCode >= 300) {
+    const error = new Error(`HTTP ${res.statusCode}`);
+    const retryAfter = Number(res.headers['retry-after']);
+    if (Number.isFinite(retryAfter)) error.retryAfterMs = retryAfter * 1000;
+    res.resume();
+    return reject(error);
+  }
+  let data = '';
+  res.setEncoding('utf8');
+  res.on('data', chunk => data += chunk);
+  res.on('error', reject);
+  res.on('end', () => resolve(data));
+}
+
 function fetchDirect(url) {
   return new Promise((resolve, reject) => {
     const timeout = 20000;
     const protocol = url.startsWith('https') ? https : http;
-    protocol.get(url, {
+    const req = protocol.get(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', 'Accept-Language': 'en-US' },
-      timeout,
-    }, (res) => {
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return fetchDirect(res.headers.location).then(resolve).catch(reject);
-      }
-      let data = '';
-      res.on('data', c => data += c);
-      res.on('end', () => resolve(data));
-    }).on('error', reject);
+      agent: url.startsWith('https') ? httpsAgent : httpAgent,
+    }, res => collectResponse(res, url, fetchDirect, resolve, reject));
+    req.setTimeout(timeout, () => req.destroy(new Error('timeout')));
+    req.on('error', reject);
   });
 }
 
@@ -269,12 +293,8 @@ function fetchProxy(url) {
         host: parsed.hostname, path: parsed.pathname + parsed.search,
         socket, agent: false, timeout,
         headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', 'Accept-Language': 'en-US' }
-      }, (res2) => {
-        if (res2.statusCode >= 300 && res2.statusCode < 400 && res2.headers.location) {
-          socket.destroy(); return fetchDirect(res2.headers.location).then(resolve).catch(reject);
-        }
-        let data = ''; res2.on('data', c => data += c); res2.on('end', () => resolve(data));
-      });
+      }, res => collectResponse(res, url, fetchProxy, resolve, reject));
+      req.setTimeout(timeout, () => req.destroy(new Error('timeout')));
       req.on('error', reject); req.end();
     });
     proxyReq.on('error', reject); proxyReq.end();
@@ -283,10 +303,30 @@ function fetchProxy(url) {
 
 async function fetchRetry(url, retries = 3, useProxy = true) {
   const fn = useProxy ? fetchProxy : fetchDirect;
+  networkStats.requests++;
   for (let i = 1; i <= retries; i++) {
     try { return await fn(url); }
-    catch { if (i === retries) return null; await new Promise(r => setTimeout(r, 300 + Math.random() * 700)); }
+    catch (error) {
+      if (i === retries) {
+        networkStats.failures++;
+        return null;
+      }
+      networkStats.retries++;
+      const wait = Math.min(error.retryAfterMs || 500 * (2 ** (i - 1)) + Math.random() * 500, 30000);
+      await new Promise(resolve => setTimeout(resolve, wait));
+    }
   }
+}
+
+async function mapLimit(items, concurrency, worker) {
+  let next = 0;
+  const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next++;
+      await worker(items[index], index);
+    }
+  });
+  await Promise.all(runners);
 }
 
 // ─── PARSERS ───────────────────────────────────────────────────
@@ -349,6 +389,7 @@ async function parseRSS(xml, feedSection) {
 
   const db = new DB(dbPath);
   await db.ready();
+  db.beginBatch();
 
   const startTime = Date.now();
   let totalScraped = 0;
@@ -359,7 +400,10 @@ async function parseRSS(xml, feedSection) {
     if (!articles.length) return 0;
     const scanId = db.insertScan({ category: label, proxy_used: 'mixed', articles_found: articles.length });
     const enriched = articles.map(a => ({ ...a, scan_id: scanId, scraped_at: new Date().toISOString() }));
-    return db.insertBulkArticles(enriched);
+    const saved = db.insertBulkArticles(enriched);
+    feedCount++;
+    if (feedCount % CHECKPOINT_EVERY === 0) db.checkpoint();
+    return saved;
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -372,24 +416,22 @@ async function parseRSS(xml, feedSection) {
     const label = timespan === 1440 ? '24h' : timespan === 4320 ? '3d' : '7d';
     console.log(chalk.dim(`\n  Timespan: ${label}`));
     
-    for (const query of ENTERTAINMENT_QUERIES) {
+    await mapLimit(ENTERTAINMENT_QUERIES, GDELT_CONCURRENCY, async query => {
       const encoded = encodeURIComponent(query);
       const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encoded} sourcelang:eng&mode=artlist&maxrecords=250&format=json&timespan=${timespan}&sort=datedesc`;
       
       const json = await fetchRetry(url, 2, false); // GDELT = direct, no proxy needed
-      if (!json) continue;
+      if (!json) return;
       
       const articles = parseGDELTArticles(json);
       const saved = saveArticles(articles, `gdelt_${query}_${label}`);
       totalScraped += articles.length;
       totalSaved += saved;
-      feedCount++;
-      
       if (saved > 0) process.stdout.write(chalk.green('.'));
       
       // GDELT is generous but let's be polite
       await new Promise(r => setTimeout(r, 100 + Math.random() * 200));
-    }
+    });
     
     console.log(chalk.cyan(`  → ${label}: ${totalSaved} total saved so far`));
   }
@@ -405,23 +447,21 @@ async function parseRSS(xml, feedSection) {
 
   console.log(chalk.dim(`  ${SOURCES.length} entertainment domains\n`));
 
-  for (const domain of (RSS_ONLY ? [] : SOURCES)) {
+  await mapLimit((RSS_ONLY ? [] : SOURCES), GDELT_CONCURRENCY, async domain => {
     const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=domain:${domain} sourcelang:eng&mode=artlist&maxrecords=250&format=json&timespan=10080&sort=datedesc`;
     
     const json = await fetchRetry(url, 2, false);
-    if (!json) continue;
+    if (!json) return;
     
     const articles = parseGDELTArticles(json);
     const saved = saveArticles(articles, `gdelt_source_${domain}`);
     totalScraped += articles.length;
     totalSaved += saved;
-    feedCount++;
-    
     if (saved > 0) process.stdout.write(chalk.green(`  ✓ ${domain}:${saved} `));
     if (feedCount % 10 === 0) console.log('');
     
     await new Promise(r => setTimeout(r, 100 + Math.random() * 200));
-  }
+  });
 
   console.log(chalk.bold.cyan(`\n  Phase 2 complete: ${totalSaved - phase2Start} new from Discover sources\n`));
 
@@ -439,24 +479,23 @@ async function parseRSS(xml, feedSection) {
 
   for (const geo of ((SOURCES_ONLY || RSS_ONLY) ? [] : geos)) {
     console.log(chalk.dim(`\n  ${geo.gl}:`));
-    for (const query of ENTERTAINMENT_QUERIES) {
+    await mapLimit(ENTERTAINMENT_QUERIES, GOOGLE_CONCURRENCY, async query => {
       const encoded = encodeURIComponent(query);
       const url = `https://news.google.com/rss/search?q=${encoded}&hl=${geo.hl}&gl=${geo.gl}&ceid=${geo.ceid}`;
       
       const xml = await fetchRetry(url, 2, true); // Use proxy for Google
-      if (!xml) continue;
+      if (!xml) return;
       
       try {
         const articles = await parseRSS(xml, `gnews_${query}_${geo.gl}`);
         const saved = saveArticles(articles, `gnews_${query}_${geo.gl}`);
         totalScraped += articles.length;
         totalSaved += saved;
-        feedCount++;
         if (saved > 0) process.stdout.write(chalk.green('.'));
       } catch {}
       
       await new Promise(r => setTimeout(r, 150 + Math.random() * 350));
-    }
+    });
     console.log(chalk.cyan(`  → ${geo.gl} done`));
   }
 
@@ -468,9 +507,9 @@ async function parseRSS(xml, feedSection) {
   const phase4Start = totalSaved;
   console.log(chalk.bold.yellow('  ═══ PHASE 4: Direct Publisher RSS ═══'));
 
-  for (const [hint, feedUrl] of (RSS_ONLY ? RSS_FEEDS : SOURCES_ONLY ? [] : RSS_FEEDS)) {
+  await mapLimit((RSS_ONLY ? RSS_FEEDS : SOURCES_ONLY ? [] : RSS_FEEDS), RSS_CONCURRENCY, async ([hint, feedUrl]) => {
     const xml = await fetchRetry(feedUrl, 2, false);
-    if (!xml) { process.stdout.write(chalk.red('x')); continue; }
+    if (!xml) { process.stdout.write(chalk.red('x')); return; }
     try {
       const articles = (await parseRSS(xml, `rss_${hint}`))
         // feed niche is a better fallback than 'entertainment' when the
@@ -479,11 +518,10 @@ async function parseRSS(xml, feedSection) {
       const saved = saveArticles(articles, `rss_${hint}`);
       totalScraped += articles.length;
       totalSaved += saved;
-      feedCount++;
       if (saved > 0) process.stdout.write(chalk.green('.'));
     } catch { process.stdout.write(chalk.red('x')); }
     await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
-  }
+  });
 
   console.log(chalk.bold.cyan(`\n  Phase 4 complete: ${totalSaved - phase4Start} new from direct RSS\n`));
 
@@ -491,12 +529,14 @@ async function parseRSS(xml, feedSection) {
   // DONE
   // ═══════════════════════════════════════════════════════════════
   const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+  db.endBatch();
   const totalInDB = db.getArticleCount();
   db.close();
 
   console.log(chalk.bold.magenta(`\n  ═════════════════════════════════════════════`));
   console.log(chalk.bold.magenta(`  🔥 NUCLEAR LOAD COMPLETE`));
   console.log(chalk.bold.magenta(`  Feeds hit:        ${feedCount}`));
+  console.log(chalk.bold.magenta(`  Requests failed:  ${networkStats.failures}/${networkStats.requests} (${networkStats.retries} retries)`));
   console.log(chalk.bold.magenta(`  Total scraped:    ${totalScraped}`));
   console.log(chalk.bold.magenta(`  Unique saved:     ${totalSaved}`));
   console.log(chalk.bold.magenta(`  Total in DB:      ${totalInDB}`));
@@ -505,4 +545,6 @@ async function parseRSS(xml, feedSection) {
 
   console.log(chalk.cyan('  Run the analysis: node src/cli.js analyze'));
   console.log(chalk.cyan('  Start dashboard:  node src/cli.js dashboard\n'));
+
+  if (networkStats.requests > 0 && networkStats.failures === networkStats.requests) process.exitCode = 1;
 })();

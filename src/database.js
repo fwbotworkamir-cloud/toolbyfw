@@ -6,6 +6,7 @@ class DB {
   constructor(dbPath) {
     this.dbPath = path.resolve(dbPath);
     this.db = null;
+    this._batchDepth = 0;
     this._ready = this._init();
   }
 
@@ -32,10 +33,37 @@ class DB {
   }
 
   _save() {
+    if (this._batchDepth > 0 || !this._dirty) return;
+    this._persist();
+  }
+
+  _persist() {
     const data = this.db.export();
     const buffer = Buffer.from(data);
-    fs.writeFileSync(this.dbPath, buffer);
+    const tempPath = `${this.dbPath}.tmp`;
+    fs.writeFileSync(tempPath, buffer);
+    fs.renameSync(tempPath, this.dbPath);
     this._dirty = false;
+  }
+
+  beginBatch() {
+    if (this._batchDepth++ === 0) this.db.run('BEGIN TRANSACTION');
+  }
+
+  checkpoint() {
+    if (this._batchDepth === 0) return this._save();
+    if (!this._dirty) return;
+    this.db.run('COMMIT');
+    this._persist();
+    this.db.run('BEGIN TRANSACTION');
+  }
+
+  endBatch() {
+    if (this._batchDepth === 0) return;
+    if (--this._batchDepth === 0) {
+      this.db.run('COMMIT');
+      if (this._dirty) this._persist();
+    }
   }
 
   _createTables() {
@@ -329,6 +357,7 @@ class DB {
       // Only persist if this handle actually wrote something. A read-only
       // handle (dashboard, analyze) saving on close would overwrite newer
       // data another process wrote to the file after we loaded it.
+      while (this._batchDepth > 0) this.endBatch();
       if (this._dirty) this._save();
       this.db.close();
     }

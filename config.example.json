@@ -22,5 +22,11 @@
   "scheduler": {
     "intervalHours": 6,
     "collectOnStart": true
+  },
+  "performance": {
+    "gdeltConcurrency": 6,
+    "googleConcurrency": 3,
+    "rssConcurrency": 6,
+    "checkpointEvery": 25
   }
 }

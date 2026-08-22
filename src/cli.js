@@ -472,11 +472,12 @@ async function cmdFw(days) {
 // Collection is a standalone script; run it as a child so a crash mid-pull
 // can't take down a long-running scheduler.
 function collectOnce() {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [path.join(__dirname, 'nuclear-load.js')], {
       cwd: ROOT, stdio: 'inherit',
     });
-    child.on('exit', (code) => resolve(code));
+    child.on('exit', code => code === 0 ? resolve() : reject(new Error(`collector exited with code ${code}`)));
+    child.on('error', reject);
   });
 }
 
@@ -507,11 +508,12 @@ const LANES = [
 ];
 
 function collectOnceArgs(extraArgs) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [path.join(__dirname, 'nuclear-load.js'), ...extraArgs], {
       cwd: ROOT, stdio: 'inherit',
     });
-    child.on('exit', (code) => resolve(code));
+    child.on('exit', code => code === 0 ? resolve() : reject(new Error(`collector exited with code ${code}`)));
+    child.on('error', reject);
   });
 }
 
