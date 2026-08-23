@@ -1,0 +1,16 @@
+[Unit]
+Description=Discover Analyzer dashboard
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/discover-analyzer
+ExecStart=/usr/bin/node /root/discover-analyzer/src/cli.js dashboard
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=HOME=/root
+
+[Install]
+WantedBy=multi-user.target

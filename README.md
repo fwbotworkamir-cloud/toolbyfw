@@ -80,6 +80,19 @@ crontab -e
 0 */6 * * * cd /path/to/discover-analyzer && npm run collect >> logs/cron.log 2>&1
 ```
 
+### VPS services
+
+The service files in `deploy/` keep the master collector and dashboard running across crashes and reboots. They expect the application at `/root/discover-analyzer`; update both paths if installed elsewhere.
+
+```bash
+sudo install -m 0644 deploy/discover-*.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now discover-master discover-dashboard
+systemctl status discover-master discover-dashboard
+```
+
+Follow collector output with `journalctl -u discover-master -f`.
+
 ## How It Works
 
 **Phase 1: GDELT API** (~5K articles) — 135 entertainment queries × 3 time windows. Free, no proxy needed.
