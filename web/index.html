@@ -109,7 +109,7 @@ function microScore(headline){
   }
   if(/\d/.test(t)) add(1,'carries a digit — 56% of competitor titles do vs 35%');
   if(/\(\s*(19|20)\d\d\s*\)/.test(t)) add(-2,'parenthetical year — 0 competitor occurrences');
-  if(/\b\d+\s+years?\s+(later|ago|after)\b/i.test(t)) add(1,'"X Years Later/After" time anchor');
+  if(/\b\d+\s+years?\s+(later|ago|after)\b/i.test(t)) add(2,'"X Years Later/After" time anchor — Era-2: 6.1%→8.4%');
   if(/,\s*ranked\b/i.test(t)) add(2,'", Ranked" suffix — 5x competitor signature');
   if(/\bof all time\b/i.test(t)) add(1,'"of All Time" — 3x over-indexed');
   if(/\b(you forgot|you (probably )?missed|you need to (see|watch)|right now|ever made|in history)\b/i.test(t)) add(-3,'second-person guilt suffix — dead in competitor titles');
@@ -133,7 +133,9 @@ function microScore(headline){
   if(ci>0){ const pre=t.slice(0,ci);
     if(pre.trim().split(/\s+/).length<=4&&detectVertical(pre)) add(2,'franchise-fronted colon ≤4 words — the competitor colon shape');
     else if(/\b(review|video|interview|box office|trailer|recap|update|watch)\b/i.test(pre)) add(-2,'label-fronted colon — wire-service style'); }
-  if(/^(why|how|what|who|when|where)\b/i.test(t)) add(-1,'wh-word opener — half the competitor rate');
+  if(/^(why|how|what|who|when|where)\b/i.test(t)) add(-2,'wh-word opener — Era-2: collapsed 2.1%→0.2%');
+  if(/\b(Netflix|Disney\+|HBO Max|Prime Video|Paramount\+|Apple TV\+?|Hulu|Crunchyroll|Peacock)\b/i.test(t)) add(1,'streaming platform name-drop — Era-2: 13.3%→17.4%');
+  if(/^["“]/.test(t)) add(-1,'quote-opener — Era-2: 9→0 post-update');
   if(detectVertical(words.slice(0,2).join(' '))) add(2,'franchise up front — 2.8x competitor pattern');
   const verdict=pts>=6?'competitor-grade':pts>=1?'neutral':'off-pattern';
   return {points:pts,verdict,hits};
