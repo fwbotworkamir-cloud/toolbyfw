@@ -426,6 +426,7 @@ function topicIntelligence(db, days = 14) {
 
 const TOPIC_CACHE_DAYS = [7, 14, 30];
 const topicCacheFile = path.join(ROOT, 'data', 'topics-cache.json');
+const dashboardCacheFile = path.join(ROOT, 'data', 'dashboard-cache.json');
 
 function dbVersion(dbFile) {
   const stat = fs.statSync(dbFile);
@@ -450,6 +451,27 @@ function writeTopicCache(version, topics) {
     topics,
   }));
   fs.renameSync(tempFile, topicCacheFile);
+}
+
+function readDashboardCache() {
+  try {
+    const cached = JSON.parse(fs.readFileSync(dashboardCacheFile, 'utf8'));
+    return cached.reports && Array.isArray(cached.articles) ? cached : { reports: {}, articles: [] };
+  } catch {
+    return { reports: {}, articles: [] };
+  }
+}
+
+function writeDashboardCache(version, reports, articles) {
+  fs.mkdirSync(path.dirname(dashboardCacheFile), { recursive: true });
+  const tempFile = `${dashboardCacheFile}.${process.pid}.tmp`;
+  fs.writeFileSync(tempFile, JSON.stringify({
+    db_version: version,
+    generated_at: new Date().toISOString(),
+    reports,
+    articles,
+  }));
+  fs.renameSync(tempFile, dashboardCacheFile);
 }
 
 // Read only the tail needed by the Topics page. The history file grows by one
@@ -550,7 +572,8 @@ async function snapshotTopics() {
     for (const days of TOPIC_CACHE_DAYS) topics[days] = topicIntelligence(db, days);
     const t = topics[14];
     db.close();
-    writeTopicCache(dbVersion(path.resolve(ROOT, config.database.path)), topics);
+    const version = dbVersion(path.resolve(ROOT, config.database.path));
+    writeTopicCache(version, topics);
     const line = JSON.stringify({ ts: new Date().toISOString(), total: t.total, comp_articles: t.comp_articles, bets: t.bets, rising: t.rising });
     fs.mkdirSync(path.join(ROOT, 'data'), { recursive: true });
     fs.appendFileSync(path.join(ROOT, 'data', 'topic-history.jsonl'), line + '\n');
@@ -830,13 +853,16 @@ async function cmdExportStatic() {
   const dataDir = path.join(out, 'data');
   fs.mkdirSync(dataDir, { recursive: true });
 
+  const reports = {};
   for (const d of [7, 14, 30, 90]) {
-    fs.writeFileSync(path.join(dataDir, `report-${d}.json`), JSON.stringify(analyzer.getDashboardData(d)));
+    reports[d] = analyzer.getDashboardData(d);
+    fs.writeFileSync(path.join(dataDir, `report-${d}.json`), JSON.stringify(reports[d]));
   }
   for (const d of [7, 14, 30]) {
     fs.writeFileSync(path.join(dataDir, `topics-${d}.json`), JSON.stringify(topicIntelligence(db, d)));
   }
-  fs.writeFileSync(path.join(dataDir, 'articles.json'), JSON.stringify(db.getRecentArticles(50)));
+  const articles = db.getRecentArticles(50);
+  fs.writeFileSync(path.join(dataDir, 'articles.json'), JSON.stringify(articles));
   fs.writeFileSync(path.join(dataDir, 'fw.json'), JSON.stringify(fwIntelligence(db, 30)));
   const histFile = path.join(ROOT, 'data', 'topic-history.jsonl');
   fs.writeFileSync(path.join(dataDir, 'topics-history.json'), fs.existsSync(histFile)
@@ -846,6 +872,9 @@ async function cmdExportStatic() {
     generated: new Date().toISOString(), articles: db.getArticleCount(), scans: db.getScanCount(),
   }));
   db.close();
+  // The live VPS dashboard reuses the same coherent snapshot generated for the
+  // static publish. This refreshes every 20 minutes without request-time scans.
+  writeDashboardCache(dbVersion(path.resolve(ROOT, config.database.path)), reports, articles);
 
   // Forge lives inside the auth-gated site now that fw-title-forge.pages.dev is deleted.
   fs.copyFileSync(path.join(ROOT, 'web', 'index.html'), path.join(out, 'forge.html'));
@@ -906,6 +935,8 @@ async function cmdDashboard() {
   let seenDbVersion = dbVersion(dbFile);
   let topicCache = readTopicCache();
   let seenTopicCacheMtime = fs.existsSync(topicCacheFile) ? fs.statSync(topicCacheFile).mtimeMs : 0;
+  let dashboardCache = readDashboardCache();
+  let seenDashboardCacheMtime = fs.existsSync(dashboardCacheFile) ? fs.statSync(dashboardCacheFile).mtimeMs : 0;
 
   function refreshTopicCache() {
     const mtime = fs.existsSync(topicCacheFile) ? fs.statSync(topicCacheFile).mtimeMs : 0;
@@ -913,6 +944,15 @@ async function cmdDashboard() {
       const diskCache = readTopicCache();
       if (Object.keys(diskCache).length) topicCache = diskCache;
       seenTopicCacheMtime = mtime;
+    }
+  }
+
+  function refreshDashboardCache() {
+    const mtime = fs.existsSync(dashboardCacheFile) ? fs.statSync(dashboardCacheFile).mtimeMs : 0;
+    if (mtime !== seenDashboardCacheMtime) {
+      const diskCache = readDashboardCache();
+      if (Object.keys(diskCache.reports).length) dashboardCache = diskCache;
+      seenDashboardCacheMtime = mtime;
     }
   }
 
@@ -943,17 +983,38 @@ async function cmdDashboard() {
     return topicCache[requestedDays];
   }
 
+  async function reportForDays(requestedDays) {
+    refreshDashboardCache();
+    if (dashboardCache.reports[requestedDays]) return dashboardCache.reports[requestedDays];
+
+    const liveDb = await freshDb();
+    dashboardCache.reports[requestedDays] = new Analyzer(liveDb).getDashboardData(requestedDays);
+    return dashboardCache.reports[requestedDays];
+  }
+
+  async function recentArticles(limit) {
+    refreshDashboardCache();
+    if (dashboardCache.articles.length && limit <= 50) return dashboardCache.articles.slice(0, limit);
+    const articles = (await freshDb()).getRecentArticles(limit);
+    if (limit <= 50) dashboardCache.articles = articles;
+    return articles;
+  }
+
   const app = express();
   app.use(express.json());
   app.use(express.static(path.join(ROOT, 'dashboard')));
 
   const days = (req) => Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 365);
 
-  app.get('/api/report', async (req, res) =>
-    res.json(new Analyzer(await freshDb()).getDashboardData(days(req))));
+  app.get('/api/report', async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(await reportForDays(days(req)));
+  });
 
-  app.get('/api/articles', async (req, res) =>
-    res.json((await freshDb()).getRecentArticles(Math.min(parseInt(req.query.limit, 10) || 50, 500))));
+  app.get('/api/articles', async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(await recentArticles(Math.min(parseInt(req.query.limit, 10) || 50, 500)));
+  });
 
   app.get('/api/export', async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="discover-report.json"');

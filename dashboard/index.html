@@ -59,6 +59,8 @@
       align-items: center;
     }
 
+    .refresh-status { color: var(--muted); font-size: 11px; white-space: nowrap; }
+
     .header-controls select, .header-controls button {
       background: var(--card);
       color: var(--text);
@@ -251,6 +253,7 @@
 <div class="header">
   <h1>⚡ Discover Algorithm Intelligence</h1>
   <div class="header-controls">
+    <span class="refresh-status" id="refreshStatus">Fetching latest data…</span>
     <a href="/topics" style="background:var(--card);color:var(--text);border:1px solid var(--border);padding:8px 16px;border-radius:8px;font-size:13px;text-decoration:none;">🎯 Topics</a>
     <select id="periodSelect" onchange="loadData()">
       <option value="7">Last 7 days</option>
@@ -357,22 +360,48 @@
   const CHART_COLORS = [COLORS.accent, COLORS.cyan, COLORS.green, COLORS.yellow, COLORS.orange, COLORS.purple, COLORS.red, COLORS.pink];
 
   let charts = {};
+  let loading = false;
+  let reloadPending = false;
 
-  async function loadData() {
+  async function loadData(silent = false) {
+    if (loading) {
+      if (!silent) reloadPending = true;
+      return;
+    }
+    loading = true;
     const days = document.getElementById('periodSelect').value;
+    const refreshStatus = document.getElementById('refreshStatus');
     try {
-      const res = await fetch(`/api/report?days=${days}`);
-      const data = await res.json();
-      render(data);
+      const [reportResponse, articlesResponse] = await Promise.all([
+        fetch(`/api/report?days=${days}`),
+        fetch('/api/articles?limit=50'),
+      ]);
+      if (!reportResponse.ok) throw new Error(`report request failed: ${reportResponse.status}`);
+      if (!articlesResponse.ok) throw new Error(`articles request failed: ${articlesResponse.status}`);
+      const [data, articles] = await Promise.all([reportResponse.json(), articlesResponse.json()]);
+      const generated = data.generated_at ? new Date(data.generated_at) : null;
+      refreshStatus.textContent = generated && !Number.isNaN(generated.getTime())
+        ? `Data snapshot: ${generated.toLocaleString()} · refreshes every minute`
+        : 'Latest data snapshot · refreshes every minute';
+      render(data, articles);
     } catch (err) {
-      document.getElementById('statsBar').innerHTML = '<div class="stat-card"><div class="stat-label">Error</div><div class="stat-value" style="font-size:16px;">No data yet — run a scan first</div><div class="stat-sub">node src/cli.js scan</div></div>';
-      document.getElementById('mainGrid').innerHTML = '';
+      refreshStatus.textContent = 'Refresh failed · retrying automatically';
+      if (!silent) {
+        document.getElementById('statsBar').innerHTML = '<div class="stat-card"><div class="stat-label">Error</div><div class="stat-value" style="font-size:16px;">No data yet — run a scan first</div><div class="stat-sub">node src/cli.js scan</div></div>';
+        document.getElementById('mainGrid').innerHTML = '';
+      }
+    } finally {
+      loading = false;
+      if (reloadPending) {
+        reloadPending = false;
+        loadData();
+      }
     }
   }
 
-  function render(data) {
+  function render(data, articles) {
     renderStats(data);
-    renderGrid(data);
+    renderGrid(data, articles);
   }
 
   function renderStats(data) {
@@ -407,7 +436,7 @@
     document.getElementById('statsBar').innerHTML = html;
   }
 
-  function renderGrid(data) {
+  function renderGrid(data, articles) {
     // Destroy existing charts
     Object.values(charts).forEach(c => c.destroy());
     charts = {};
@@ -444,7 +473,7 @@
     renderSourcesTable(data.top_sources || []);
     renderTitleLenTable(data.title_length_by_format || []);
     renderCategoryChart(data.category_breakdown || []);
-    loadArticles();
+    renderArticles(articles);
   }
 
   function renderFormatChart(formats) {
@@ -572,22 +601,19 @@
     });
   }
 
-  async function loadArticles() {
-    try {
-      const res = await fetch('/api/articles?limit=50');
-      const articles = await res.json();
-      const tbody = document.getElementById('articlesTable');
-      if (!tbody) return;
+  function renderArticles(articles) {
+    const tbody = document.getElementById('articlesTable');
+    if (!tbody) return;
 
-      const formatBadge = (f) => {
-        const colors = { 'listicle': 'green', 'how-to': 'cyan', 'news': 'yellow', 'explainer': 'purple', 'opinion': 'accent' };
-        return `<span class="badge badge-${colors[f] || 'accent'}">${f || '—'}</span>`;
-      };
+    const formatBadge = (f) => {
+      const colors = { 'listicle': 'green', 'how-to': 'cyan', 'news': 'yellow', 'explainer': 'purple', 'opinion': 'accent' };
+      return `<span class="badge badge-${colors[f] || 'accent'}">${f || '—'}</span>`;
+    };
 
-      tbody.innerHTML = articles.map(a => {
-        let pw = [];
-        try { pw = JSON.parse(a.power_words || '[]'); } catch {}
-        return `
+    tbody.innerHTML = (articles || []).map(a => {
+      let pw = [];
+      try { pw = JSON.parse(a.power_words || '[]'); } catch {}
+      return `
           <tr>
             <td style="max-width:400px;"><a href="${a.url}" target="_blank" style="color:var(--text);text-decoration:none;">${a.title}</a></td>
             <td style="color:var(--muted);white-space:nowrap;">${a.source || '—'}</td>
@@ -596,8 +622,7 @@
             <td>${pw.slice(0, 3).map(w => `<span class="badge badge-accent" style="margin:1px;">${w}</span>`).join(' ') || '—'}</td>
           </tr>
         `;
-      }).join('');
-    } catch {}
+    }).join('');
   }
 
   async function generateTitles() {
@@ -670,6 +695,7 @@
 
   // Initial load
   loadData();
+  setInterval(() => loadData(true), 60 * 1000);
 </script>
 
 </body>
