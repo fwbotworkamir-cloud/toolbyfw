@@ -351,7 +351,7 @@ function topicIntelligence(db, days = 14) {
   };
   const rows = db._queryAll(
     `SELECT title, source, scraped_at, publish_date, feed_section FROM articles WHERE scraped_at > datetime('now', ?)`,
-    [`-${days} days`]).filter(r => !classifier.isOffTopic(r.title));
+    [`-${Math.round(days * 24)} hours`]).filter(r => !classifier.isOffTopic(r.title));
 
   const comp = {}, all = {}, recent = {}, prior = {}, hot = {}, brk = {}, sample = {}, heads = {};
   let compN = 0, recentN = 0, priorN = 0, hotN = 0, brkN = 0;
@@ -387,12 +387,12 @@ function topicIntelligence(db, days = 14) {
   const exOf = k => (heads[k] || []).sort((a, b) => (b.comp - a.comp) || (a.age - b.age)).slice(0, 3)
     .map(h => ({ title: h.t, source: h.src || '', hours_ago: Math.round(h.age) }));
   // Competitor bets: what winners cover, ranked by their coverage count
-  const bets = Object.entries(comp).filter(([, v]) => v >= 4)
+  const bets = Object.entries(comp).filter(([, v]) => v >= (days < 1 ? 2 : 4))
     .map(([k, v]) => ({ topic: sample[k], comp_articles: v, field_articles: all[k] - v,
       comp_share: +(v / compN * 100).toFixed(2), vertical: vertOf(k), examples: exOf(k) }))
     .sort((a, b) => b.comp_articles - a.comp_articles).slice(0, 25);
   // Rising: 48h rate vs prior rate
-  const rising = Object.entries(recent).filter(([, v]) => v >= 6)
+  const rising = Object.entries(recent).filter(([, v]) => v >= (days < 1 ? 3 : 6))
     .map(([k, v]) => ({ topic: sample[k], last48h: v,
       velocity: +(((v / (recentN || 1)) / ((prior[k] || 0.5) / (priorN || 1)))).toFixed(1),
       comp_covering: comp[k] || 0, vertical: vertOf(k), examples: exOf(k) }))
@@ -774,7 +774,7 @@ async function cmdExportStatic() {
   for (const d of [7, 14, 30, 90]) {
     fs.writeFileSync(path.join(dataDir, `report-${d}.json`), JSON.stringify(analyzer.getDashboardData(d)));
   }
-  for (const d of [7, 14, 30]) {
+  for (const d of [0.5, 7, 14, 30]) {
     fs.writeFileSync(path.join(dataDir, `topics-${d}.json`), JSON.stringify(topicIntelligence(db, d)));
   }
   fs.writeFileSync(path.join(dataDir, 'articles.json'), JSON.stringify(db.getRecentArticles(50)));
@@ -866,7 +866,7 @@ async function cmdDashboard() {
   app.use(express.json());
   app.use(express.static(path.join(ROOT, 'dashboard')));
 
-  const days = (req) => Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 365);
+  const days = (req) => Math.min(Math.max(parseFloat(req.query.days) || 30, 0.5), 365); // 0.5 = 12h view
 
   app.get('/api/report', async (req, res) =>
     res.json(new Analyzer(await freshDb()).getDashboardData(days(req))));
