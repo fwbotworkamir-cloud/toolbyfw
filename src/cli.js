@@ -134,7 +134,7 @@ function microScore(headline, classifier) {
   }
   if (/\d/.test(t)) add(1, 'carries a digit — 56% of competitor titles do vs 35%');
   if (/\(\s*(19|20)\d\d\s*\)/.test(t)) add(-2, 'parenthetical year — 0 competitor occurrences (year belongs in "of 2026 So Far" suffixes)');
-  if (/\b\d+\s+years?\s+(later|ago|after)\b/i.test(t)) add(1, '"X Years Later/After" time anchor — ScreenRant signature');
+  if (/\b\d+\s+years?\s+(later|ago|after)\b/i.test(t)) add(2, '"X Years Later/After" time anchor — Era-2: rose 6.1%→8.4% post spam-update');
 
   // Suffixes (S3, S4, S5)
   if (/,\s*ranked\b/i.test(t)) add(2, '", Ranked" suffix — 5x competitor signature');
@@ -176,8 +176,14 @@ function microScore(headline, classifier) {
   }
 
   // Openers (S19, S20)
-  if (/^(why|how|what|who|when|where)\b/i.test(t)) add(-1, 'wh-word opener — half the competitor rate');
+  if (/^(why|how|what|who|when|where)\b/i.test(t)) add(-2, 'wh-word opener — Era-2: collapsed 2.1%→0.2% post spam-update (p<0.001)');
   if (classifier.detectVertical(words.slice(0, 2).join(' '))) add(2, 'franchise up front — 2.8x competitor pattern');
+
+  // Era-2 additions (S25, S26 — mined 2026-08-24 post spam-update, adversarially verified)
+  if (/\b(Netflix|Disney\+|HBO Max|Prime Video|Paramount\+|Apple TV\+?|Hulu|Crunchyroll|Peacock)\b/i.test(t))
+    add(1, 'streaming platform name-drop — Era-2: 13.3%→17.4% (Netflix 5.3%→8.2%)');
+  // quote-FIRST only — Era-1 standing rule: never score mid-title quotes from this corpus (scraper artifacts)
+  if (/^["“]/.test(t)) add(-1, 'quote-opener — Era-2: quote-first titles 9→0 post-update');
 
   const verdict = pts >= 6 ? 'competitor-grade' : pts >= 1 ? 'neutral' : 'off-pattern';
   return { points: pts, verdict, hits };
