@@ -13,6 +13,7 @@
   .header { padding:24px 32px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
   .header h1 { font-size:20px; font-weight:800; letter-spacing:-0.5px; background:linear-gradient(135deg,var(--accent),var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
   .header-controls { display:flex; gap:12px; align-items:center; }
+  .refresh-status { color:var(--muted); font-size:11px; white-space:nowrap; }
   .header-controls select, .header-controls a { background:var(--card); color:var(--text); border:1px solid var(--border); padding:8px 16px; border-radius:8px; font-size:13px; text-decoration:none; cursor:pointer; font-family:inherit; }
   .header-controls a:hover { border-color:var(--accent); }
   .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:24px 32px; }
@@ -38,6 +39,7 @@
 <div class="header">
   <h1>🎯 Topic Intelligence</h1>
   <div class="header-controls">
+    <span class="refresh-status" id="refreshStatus">Fetching latest completed cycle…</span>
     <select id="daysSel" onchange="load()">
       <option value="7">Last 7 days</option>
       <option value="14" selected>Last 14 days</option>
@@ -55,19 +57,33 @@
 </div>
 
 <script>
-async function load() {
+let loading = false;
+let reloadPending = false;
+async function load(silent = false) {
+  if (loading) {
+    if (!silent) reloadPending = true;
+    return;
+  }
+  loading = true;
   const days = document.getElementById('daysSel').value;
   const grid = document.getElementById('grid');
-  grid.innerHTML = '<div class="loading">Loading topic data…</div>';
+  const refreshStatus = document.getElementById('refreshStatus');
+  if (!silent) grid.innerHTML = '<div class="loading">Loading topic data…</div>';
   try {
-    const t = await (await fetch('/api/topics?days=' + days)).json();
+    const historyRequest = fetch('/api/topics/history?limit=2')
+      .then(response => response.ok ? response.json() : [])
+      .catch(() => []);
+    const topicResponse = await fetch('/api/topics?days=' + days);
+    if (!topicResponse.ok) throw new Error(`topics request failed: ${topicResponse.status}`);
+    const [t, hist] = await Promise.all([topicResponse.json(), historyRequest]);
+    const generated = t.generated_at ? new Date(t.generated_at) : null;
+    refreshStatus.textContent = generated && !Number.isNaN(generated.getTime())
+      ? `Completed cycle: ${generated.toLocaleString()} · refreshes every minute`
+      : 'Latest completed cycle · refreshes every minute';
     // trend vs previous snapshot (captured after each collection cycle)
     let prevBets = {};
-    try {
-      const hist = await (await fetch('/api/topics/history')).json();
-      const prev = hist[hist.length - 2] || hist[hist.length - 1];
-      if (prev) for (const b of prev.bets) prevBets[b.topic.toLowerCase()] = b.comp_articles;
-    } catch {}
+    const prev = hist[hist.length - 2] || hist[hist.length - 1];
+    if (prev) for (const b of prev.bets) prevBets[b.topic.toLowerCase()] = b.comp_articles;
     const trend = (topic, now) => {
       const p = prevBets[topic.toLowerCase()];
       if (p === undefined) return '';
@@ -148,10 +164,18 @@ async function load() {
       </div>`;
   } catch (e) {
     console.error('topics render failed:', e);
-    grid.innerHTML = '<div class="loading">No data — is the collector running?</div>';
+    refreshStatus.textContent = 'Refresh failed · retrying automatically';
+    if (!silent) grid.innerHTML = '<div class="loading">No data — is the collector running?</div>';
+  } finally {
+    loading = false;
+    if (reloadPending) {
+      reloadPending = false;
+      load();
+    }
   }
 }
 load();
+setInterval(() => load(true), 60 * 1000);
 </script>
 </body>
 </html>

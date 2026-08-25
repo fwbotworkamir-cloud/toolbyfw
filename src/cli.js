@@ -421,7 +421,61 @@ function topicIntelligence(db, days = 14) {
     .filter(x => x.comp_covering >= 1 || x.vertical !== '—')
     .sort((a, b) => b.last2h - a.last2h || a.comp_covering - b.comp_covering).slice(0, 15);
 
-  return { days, total: rows.length, comp_articles: compN, bets, rising, hot_now, breaking };
+  return { generated_at: new Date().toISOString(), days, total: rows.length, comp_articles: compN, bets, rising, hot_now, breaking };
+}
+
+const TOPIC_CACHE_DAYS = [7, 14, 30];
+const topicCacheFile = path.join(ROOT, 'data', 'topics-cache.json');
+
+function dbVersion(dbFile) {
+  const stat = fs.statSync(dbFile);
+  return `${stat.size}:${stat.mtimeMs}`;
+}
+
+function readTopicCache() {
+  try {
+    const cached = JSON.parse(fs.readFileSync(topicCacheFile, 'utf8'));
+    return cached.topics || {};
+  } catch {
+    return {};
+  }
+}
+
+function writeTopicCache(version, topics) {
+  fs.mkdirSync(path.dirname(topicCacheFile), { recursive: true });
+  const tempFile = `${topicCacheFile}.${process.pid}.tmp`;
+  fs.writeFileSync(tempFile, JSON.stringify({
+    db_version: version,
+    generated_at: new Date().toISOString(),
+    topics,
+  }));
+  fs.renameSync(tempFile, topicCacheFile);
+}
+
+// Read only the tail needed by the Topics page. The history file grows by one
+// fairly large JSON line every collection cycle, so parsing the whole file on
+// every page load becomes increasingly expensive on a small VPS.
+function readJsonlTail(file, limit) {
+  if (!fs.existsSync(file) || limit < 1) return [];
+  const fd = fs.openSync(file, 'r');
+  try {
+    const size = fs.fstatSync(fd).size;
+    let position = size;
+    let newlineCount = 0;
+    const chunks = [];
+    while (position > 0 && newlineCount <= limit) {
+      const length = Math.min(64 * 1024, position);
+      position -= length;
+      const chunk = Buffer.allocUnsafe(length);
+      fs.readSync(fd, chunk, 0, length, position);
+      chunks.unshift(chunk);
+      for (const byte of chunk) if (byte === 10) newlineCount++;
+    }
+    return Buffer.concat(chunks).toString('utf8').trim().split('\n').filter(Boolean).slice(-limit)
+      .map(line => JSON.parse(line));
+  } finally {
+    fs.closeSync(fd);
+  }
 }
 
 async function cmdTopics(days) {
@@ -492,8 +546,11 @@ function collectOnce() {
 async function snapshotTopics() {
   try {
     const db = await openDb();
-    const t = topicIntelligence(db, 14);
+    const topics = {};
+    for (const days of TOPIC_CACHE_DAYS) topics[days] = topicIntelligence(db, days);
+    const t = topics[14];
     db.close();
+    writeTopicCache(dbVersion(path.resolve(ROOT, config.database.path)), topics);
     const line = JSON.stringify({ ts: new Date().toISOString(), total: t.total, comp_articles: t.comp_articles, bets: t.bets, rising: t.rising });
     fs.mkdirSync(path.join(ROOT, 'data'), { recursive: true });
     fs.appendFileSync(path.join(ROOT, 'data', 'topic-history.jsonl'), line + '\n');
@@ -814,7 +871,7 @@ async function cmdExportStatic() {
     .replace(/fetch\(`\/api\/report\?days=\$\{days\}`\)/g, 'fetch(`data/report-${days}.json`)')
     .replace(/fetch\('\/api\/articles\?limit=50'\)/g, "fetch('data/articles.json')")
     .replace(/fetch\('\/api\/topics\?days=' \+ days\)/g, "fetch('data/topics-' + days + '.json')")
-    .replace(/fetch\('\/api\/topics\/history'\)/g, "fetch('data/topics-history.json')")
+    .replace(/fetch\('\/api\/topics\/history\?limit=2'\)/g, "fetch('data/topics-history.json')")
     .replace(/window\.open\(`\/api\/export\?days=\$\{days\}`\)/g, 'window.open(`data/report-${days}.json`)')
     .replace(/href="\/topics"/g, 'href="topics.html"')
     .replace(/href="\/"/g, 'href="index.html"')
@@ -846,22 +903,44 @@ async function cmdDashboard() {
   // ponytail: mtime poll, not a watcher. Swap to better-sqlite3 if the reparse
   // cost matters at DB sizes where it would.
   let db = await openDb();
-  let seenMtime = fs.statSync(dbFile).mtimeMs;
+  let seenDbVersion = dbVersion(dbFile);
+  let topicCache = readTopicCache();
+  let seenTopicCacheMtime = fs.existsSync(topicCacheFile) ? fs.statSync(topicCacheFile).mtimeMs : 0;
+
+  function refreshTopicCache() {
+    const mtime = fs.existsSync(topicCacheFile) ? fs.statSync(topicCacheFile).mtimeMs : 0;
+    if (mtime !== seenTopicCacheMtime) {
+      const diskCache = readTopicCache();
+      if (Object.keys(diskCache).length) topicCache = diskCache;
+      seenTopicCacheMtime = mtime;
+    }
+  }
 
   async function freshDb() {
-    const mtime = fs.existsSync(dbFile) ? fs.statSync(dbFile).mtimeMs : 0;
-    if (mtime !== seenMtime) {
+    const version = fs.existsSync(dbFile) ? dbVersion(dbFile) : 'missing';
+    if (version !== seenDbVersion) {
       try {
         const next = await openDb();
         db.close();
         db = next;
-        seenMtime = mtime;
+        seenDbVersion = version;
       } catch (err) {
         // Mid-write snapshot: keep serving the last good copy, retry next request.
         console.error(chalk.yellow(`  ⚠ DB reload skipped: ${err.message}`));
       }
     }
     return db;
+  }
+
+  async function topicsForDays(requestedDays) {
+    refreshTopicCache();
+    if (topicCache[requestedDays]) return topicCache[requestedDays];
+
+    // Cold-start fallback only. Normal VPS traffic is served from the coherent
+    // post-collection snapshot without reparsing the full sql.js database.
+    const liveDb = await freshDb();
+    topicCache[requestedDays] = topicIntelligence(liveDb, requestedDays);
+    return topicCache[requestedDays];
   }
 
   const app = express();
@@ -899,12 +978,23 @@ async function cmdDashboard() {
   });
 
   app.get('/api/fw', async (req, res) => res.json(fwIntelligence(await freshDb(), days(req))));
-  app.get('/api/topics', async (req, res) => res.json(topicIntelligence(await freshDb(), Math.min(days(req), 30))));
+  app.get('/api/topics', async (req, res) => {
+    // The server-side snapshot cache is fast; browser caching would only hide a
+    // newly completed collector cycle from the one-minute page refresh.
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(await topicsForDays(Math.min(days(req), 30)));
+  });
   app.get('/topics', (req, res) => res.sendFile(path.join(ROOT, 'dashboard', 'topics.html')));
   app.get('/api/topics/history', (req, res) => {
     const f = path.join(ROOT, 'data', 'topic-history.jsonl');
-    if (!fs.existsSync(f)) return res.json([]);
-    res.json(fs.readFileSync(f, 'utf8').trim().split('\n').filter(Boolean).map(l => JSON.parse(l)));
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 500);
+    res.setHeader('Cache-Control', 'no-store');
+    try {
+      res.json(readJsonlTail(f, limit));
+    } catch (err) {
+      console.error(chalk.yellow(`  ⚠ Topic history read failed: ${err.message}`));
+      res.json([]);
+    }
   });
 
   app.post('/api/generate', (req, res) => {
