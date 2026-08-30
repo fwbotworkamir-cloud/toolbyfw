@@ -105,3 +105,22 @@ Explicitly NOT changed (medium/low confidence — watchlist for next corpus):
 8. Listicle counts: 5 ya 8 try karo, 10 kam ("10 best" collapsed, 5 ab #1). ", Ranked" safe hai.
 9. "Every X..." format skip karo — winners ne half se zyada kaat diya.
 10. Length mat ghatao: 13+ words normal hai, short titles (≤8 words) aur gir gaye. Em-dash kabhi nahi.
+
+---
+## ⚑ CONFIRMED 2026-08-28: THE ERA-2 FLAGSHIP FORMAT (the new "Ranked")
+
+**`[N] Years Later, [Franchise]'s [Superlative Thing] Still/Remains [Big Payoff]`**
+
+Ground-truth: FW's own recovery-window GSC (7d) — this shape is the #1 Discover page at 4,512 clicks,
+2x the #2 (wave-Ranked Gundam 2,304). Independently matches the mining run's biggest verified
+competitor shift (time-anchors 6.1%→8.4%, +38% rel). Two datasets, one answer → CONFIRMED.
+
+Mechanism: sells evergreen depth as fresh — anchor gives Google freshness, payoff gives readers nostalgia.
+
+Production hierarchy (click-weighted):
+1. RETRO-PAYOFF (primary, ~5-6/day): mine franchise milestones — anniversaries, "since finale", "since debut"
+2. WAVE-RANKED (secondary): "[Franchise]: [10/8] [Sup] [Noun], Ranked" ONLY on Rising/Hot franchises;
+   crossover twist ("8 One Piece characters who could pass the Hunter Exam") doubles the fandom feed
+3. OFFICIALLY-NEWS: unchanged
+Cold Ranked stays retired (16 non-wave Ranked pages averaged 64 clicks vs 130+ era average).
+Slug lesson: WP slugs drop "N Years Later"/"Officially" — never classify by slug, always by title.
