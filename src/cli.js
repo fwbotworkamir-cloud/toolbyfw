@@ -338,6 +338,11 @@ function topicIntelligence(db, days = 14) {
 
       if (words.every(w => STOP.has(w))) continue;
       if (m.length < 4) continue;
+      // Edge rule: real entities don't start/end on a generic word ("Reason To
+      // Stay", "Coyote Vs", "Best Westerns Ever Made"). Known franchises are
+      // exempt so "Game of Thrones" (Game ∈ STOP) survives.
+      if (words.length > 1 && !classifier.detectVertical(m)
+          && (STOP.has(words[0]) || STOP.has(words[words.length - 1]))) continue;
       if (/-[a-z]/.test(m)) continue; // glued feed-suffix artifact ("Ranked-collider")
       out.push(m);
     }
