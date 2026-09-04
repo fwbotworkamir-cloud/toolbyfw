@@ -320,6 +320,7 @@ function topicIntelligence(db, days = 14) {
     'Game', 'Movies', 'House', 'Sequel', 'Reboot', 'Remake', 'Later', 'Ago', 'Fall', 'Winter', 'Summer', 'Spring', 'Seasons', 'Episodes', 'Anime', 'Manga', 'Song', 'Songs', 'Book', 'Books',
     'Free', 'Forget', 'Days', 'Meets', 'Return', 'Returns', 'So', 'Far', 'EXCLUSIVE', 'Dragon', 'Finale', 'Ending', 'Premiere', 'Deal', 'Report', 'Rumor', 'Confirmed', 'Revealed',
     'Back', 'Again', 'Still', 'Ever', 'Never', 'Now', 'Today', 'Tonight', 'Week', 'Month', 'Coming', 'Gets', 'Sets', 'Makes', 'Takes', 'Looks', 'Real', 'True', 'Big', 'Major', 'Huge',
+    'Very', 'Soon', 'Reason', 'Stay', 'Made', 'Scene', 'Scenes', 'Moments', 'Things', 'Ways', 'Times', 'Vs', 'Post-Credits', 'Ending', 'Twist', 'Moment',
     'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']);
 
   const ents = t => {
@@ -330,9 +331,18 @@ function topicIntelligence(db, days = 14) {
       const words = m.split(' ');
       if (words.length === 1 && STOP.has(words[0])) continue;
       if (/^(How|What|Why|When|Where|Who|Which|Is|Are|Was|Does|Will|Can)$/.test(words[0])) continue; // question fragments
+      // Title-Case feeds capitalize verbs, so capitalized runs like "Box Office
+      // Bomb Is" or "Officially Fighting Back" parse as entities. A real
+      // entity never contains an aux/verb word.
+      if (words.some(w => /^(Is|Are|Was|Were|Has|Have|Had|Will|Would|Could|Should|Can|May|Must|Does|Did|Gets|Got|Goes|Officially|Finally|Reportedly)$/.test(w))) continue;
 
       if (words.every(w => STOP.has(w))) continue;
       if (m.length < 4) continue;
+      // Edge rule: real entities don't start/end on a generic word ("Reason To
+      // Stay", "Coyote Vs", "Best Westerns Ever Made"). Known franchises are
+      // exempt so "Game of Thrones" (Game ∈ STOP) survives.
+      if (words.length > 1 && !classifier.detectVertical(m)
+          && (STOP.has(words[0]) || STOP.has(words[words.length - 1]))) continue;
       if (/-[a-z]/.test(m)) continue; // glued feed-suffix artifact ("Ranked-collider")
       out.push(m);
     }
@@ -351,11 +361,18 @@ function topicIntelligence(db, days = 14) {
   };
   const rows = db._queryAll(
     `SELECT title, source, scraped_at, publish_date, feed_section FROM articles WHERE scraped_at > datetime('now', ?)`,
-    [`-${days} days`]).filter(r => !classifier.isOffTopic(r.title));
+    [`-${Math.round(days * 24)} hours`]).filter(r => !classifier.isOffTopic(r.title));
 
   const comp = {}, all = {}, recent = {}, prior = {}, hot = {}, brk = {}, sample = {}, heads = {};
   let compN = 0, recentN = 0, priorN = 0, hotN = 0, brkN = 0;
+  // Syndication dedupe: the same story lands on 2+ feeds with an identical
+  // title, double-counting every phrase — in thin hot/breaking windows those
+  // dupes alone cleared min-2 and filled the lanes with static junk fragments.
+  const seenTitles = new Set();
   for (const r of rows) {
+    const tNorm = (r.title || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 60);
+    if (seenTitles.has(tNorm)) continue;
+    seenTitles.add(tNorm);
     const isComp = FW_COMPETITORS.some(d => (r.source || '').toLowerCase().includes(d));
     // Velocity uses only composition-stable sources (domain scans + publisher
     // RSS). GDELT query-seeded rows ("gdelt_Met Gala_...") would make every
@@ -387,12 +404,12 @@ function topicIntelligence(db, days = 14) {
   const exOf = k => (heads[k] || []).sort((a, b) => (b.comp - a.comp) || (a.age - b.age)).slice(0, 3)
     .map(h => ({ title: h.t, source: h.src || '', hours_ago: Math.round(h.age) }));
   // Competitor bets: what winners cover, ranked by their coverage count
-  const bets = Object.entries(comp).filter(([, v]) => v >= 4)
+  const bets = Object.entries(comp).filter(([, v]) => v >= (days < 1 ? 2 : 4))
     .map(([k, v]) => ({ topic: sample[k], comp_articles: v, field_articles: all[k] - v,
       comp_share: +(v / compN * 100).toFixed(2), vertical: vertOf(k), examples: exOf(k) }))
     .sort((a, b) => b.comp_articles - a.comp_articles).slice(0, 25);
   // Rising: 48h rate vs prior rate
-  const rising = Object.entries(recent).filter(([, v]) => v >= 6)
+  const rising = Object.entries(recent).filter(([, v]) => v >= (days < 1 ? 3 : 6))
     .map(([k, v]) => ({ topic: sample[k], last48h: v,
       velocity: +(((v / (recentN || 1)) / ((prior[k] || 0.5) / (priorN || 1)))).toFixed(1),
       comp_covering: comp[k] || 0, vertical: vertOf(k), examples: exOf(k) }))
@@ -858,7 +875,7 @@ async function cmdExportStatic() {
     reports[d] = analyzer.getDashboardData(d);
     fs.writeFileSync(path.join(dataDir, `report-${d}.json`), JSON.stringify(reports[d]));
   }
-  for (const d of [7, 14, 30]) {
+  for (const d of [0.5, 7, 14, 30]) {
     fs.writeFileSync(path.join(dataDir, `topics-${d}.json`), JSON.stringify(topicIntelligence(db, d)));
   }
   const articles = db.getRecentArticles(50);
@@ -1004,7 +1021,7 @@ async function cmdDashboard() {
   app.use(express.json());
   app.use(express.static(path.join(ROOT, 'dashboard')));
 
-  const days = (req) => Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 365);
+  const days = (req) => Math.min(Math.max(parseFloat(req.query.days) || 30, 0.5), 365); // 0.5 = 12h view
 
   app.get('/api/report', async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
