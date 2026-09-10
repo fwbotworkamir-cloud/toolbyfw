@@ -185,6 +185,18 @@ function microScore(headline, classifier) {
   // quote-FIRST only — Era-1 standing rule: never score mid-title quotes from this corpus (scraper artifacts)
   if (/^["“]/.test(t)) add(-1, 'quote-opener — Era-2: quote-first titles 9→0 post-update');
 
+  // S27: senseless-filler detector (added 2026-09-11, Amir: "format sahe but senseless").
+  // Regex can't judge meaning, but it CAN catch the mad-lib tells — vague payoffs
+  // that name no concrete thing. Winners' payoffs are specific nouns, not "update".
+  if (/\b(new|big|major|huge|latest)\s+(update|news|change|era|move)\s*$/i.test(t))
+    add(-3, 'SENSELESS payoff — title ends on a vague filler ("New Update"); say WHAT actually happened');
+  if (/\bin\s+20\d\d\s+(new\s+)?(update|news)\b/i.test(t))
+    add(-3, 'SENSELESS "in 20XX update" filler — a year is not a payoff');
+  if (/\bjoins\b/i.test(t) && !/\bjoins\s+\S+.*\b(as|in|on|with|to become|at|for)\b/i.test(t))
+    add(-2, 'vague "Joins" with no context — joins WHERE/AS WHAT? ("...in Fortnite", "...as DLC")');
+  if (/\beverything (we know|you need)\b/i.test(t))
+    add(-2, '"Everything We Know" — guide filler, Search content not Discover');
+
   const verdict = pts >= 6 ? 'competitor-grade' : pts >= 1 ? 'neutral' : 'off-pattern';
   return { points: pts, verdict, hits };
 }
