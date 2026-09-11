@@ -813,7 +813,11 @@ async function cmdMaster() {
 
   console.log(chalk.bold.cyan(`  MASTER LOOP — lanes: rss/1h · domains/6h · full/24h · started ${new Date().toISOString()}\n`));
   setInterval(tick, 60 * 1000);
-  setInterval(publishTick, 20 * 60 * 1000); // live refresh every 20 min regardless of lane state
+  // publishTick disabled 2026-09-12: fw-discover-dash static publish is dead
+  // (wrangler creds absent on VPS, pages.dev frozen by design) — it only spawned
+  // a failing npx every 20 min and spammed the logs. Re-enable if the static
+  // mirror ever comes back: setInterval(publishTick, 20 * 60 * 1000);
+  void publishTick;
   setInterval(() => console.log(chalk.gray(`  [master] heartbeat ${new Date().toISOString()} — next: ${LANES.map(l => `${l.name} in ${Math.max(0, Math.round((due.get(l.name) - Date.now()) / 60000))}m`).join(', ')}`)), 15 * 60 * 1000);
   tick();
 }
