@@ -1,4 +1,4 @@
-# FandomWire citation plan: fix the crawl gate first, keep A2A as a triggered option
+# FandomWire agent-readiness and citation plan: fix the crawl gate first, reserve rights everywhere, keep A2A as a triggered option
 
 Prepared 2026-10-11 for the FandomWire owner, editorial team and business development team. One plan: the winning design, the judges' grafts added, their fatal flaws removed.
 
@@ -40,6 +40,8 @@ Assumption before the verdict: the goal is more citations in AI answers, with cl
 | Core, layers (a), (b), (d) | about 5.4 |
 | Core plus MCP server | about 7.9 |
 | Core plus MCP plus A2A card | about 8.9 |
+
+**Getting paid (Section 10).** Assumption before this: the agenda is to be positioned for payment when AI platforms pay, with citations as the proof of value. Google does run a payment pilot, the "AI contribution" pilot in Search Console, but it is invite-only and early-stage, and reported payouts to small and mid-size sites are under 0.1% of ad revenue (confirmed as reports, not as Google statements). Nothing at Google is open to apply for. Three channels take applications today: Microsoft's Publisher Content Marketplace, Perplexity's publisher programme, and Cloudflare Pay Per Crawl, with no payouts yet reported for the first and none disclosed for the second. No court or regulator in the record will compel payment to FandomWire within 18 months (inference). Agent-friendly, as buyers define it, means a per-bot robots.txt, complete JSON-LD and full-text RSS, a machine-readable rights reservation (Content Signals, RSL), measurement a buyer can audit, and applications filed. No buyer found requires an NLWeb, MCP or A2A endpoint.
 
 ## 1. What I am unsure of, and how to confirm it
 
@@ -119,7 +121,7 @@ It would not produce a citation in any consumer assistant, because nothing on th
 
 Assumption before this recommendation: the owner's stated goal (2026-10-11) is better citations as readers move to AI chatbots, and the weighting of citations, clicks and revenue is still open (U11).
 
-Reframe "A2A for citations" as agent readiness in four layers. (a) The crawl gate, which carries every citation observed today. (b) One structured content contract shared by crawlers, markup and any future endpoint. (c) Agent endpoints: an optional read-only MCP server, and an A2A card built only when a named enterprise consumer asks in writing. (d) Licensing, access control and measurement. The A2A idea gets a defined trigger instead of a date.
+Reframe "A2A for citations" as agent readiness in four layers. (a) The crawl gate, which carries every citation observed today. (b) One structured content contract shared by crawlers, markup and any future endpoint. (c) Agent endpoints: an optional read-only MCP server, and an A2A card built only when a named enterprise consumer asks in writing. (d) Licensing, access control and measurement. The A2A idea gets a defined trigger instead of a date. Section 10 adds the payment angle: the same four layers make FandomWire eligible for the programmes that pay, and no buyer found requires an NLWeb, MCP or A2A endpoint (Section 10.5).
 
 ## 4. How AI assistants pick citations today, and where FandomWire stands
 
@@ -517,7 +519,7 @@ Licensing paper trail: a /license/ page shipped in Phase 3, after the Phase 1c t
 
 Access control for any JSON route: Disallow: /wp-json/fw-subscription/ in robots.txt on its own dated line; X-Robots-Tag noindex; ETag from contentHash; Link rel=canonical header; the rate limits above; no bulk endpoint. If U8 shows /wp/v2/posts exposes full content, restrict it first.
 
-Compensation applications, in this order, with the crawl-to-referral card as the pitch and U22 answered first:
+Section 10.3 holds the verified entry routes and reported payouts for each channel; this table is the short form. Compensation applications, in this order, with the crawl-to-referral card as the pitch and U22 answered first:
 
 | Programme | Status | Source |
 |---|---|---|
@@ -544,7 +546,7 @@ Every change gets a dated line in reports/ERA-LOG.md.
 
 ## 6. The 90-day plan, then the 6 to 12 month plan
 
-Assumptions before this schedule: A5, A12, and that the owner answers U1 to U14 in week 1. Each dated change ships alone.
+Assumptions before this schedule: A5, A12, and that the owner answers U1 to U14 in week 1. Each dated change ships alone. Section 10.6 moves measurement and the three programme applications into weeks 1 to 3 and adds Content Signals and RSL in weeks 2 to 5; where those changes conflict with the rows below, Section 10.6 governs.
 
 ### 90 days
 
@@ -641,7 +643,174 @@ Assumption before these targets: week-1 baselines hold through the baseline wind
 | Cloudflare plan tier blocks log export (Logpush Enterprise-only) | medium (A12 unverified) | publish-to-fetch cannot be measured | Worker plus Analytics Engine, or origin logs |
 | Remaining search traffic sits in puzzle and code pages | high | further substitution | Out of scope for citation work |
 
-## 10. Sources (dated) and claim-status table
+## 10. Getting paid for AI use: what exists, what it requires, and what agent-friendly means
+
+Research date 2026-10-11. Provenance: most primary hosts were egress-blocked; facts come from dated search extracts, GitHub mirrors and third-party quotes. Tags: (confirmed) fact-checked against a primary or mirrored source; (disputed: reason) sources conflict; (unverified) not checked; (inference) this research's reasoning. Bots, throughout: allow seven fetchers (Googlebot, Bingbot, OAI-SearchBot, ChatGPT-User, PerplexityBot, Perplexity-User, Claude-User); decide four separately (Google-Extended, GPTBot, CCBot, ClaudeBot).
+
+Bridge to Section 5 (a): the seven-fetcher list in this section presumes decision D1 (unblock PerplexityBot). CCBot and ClaudeBot sit in the owner's deliberate opt-out block and stay blocked unless the owner decides otherwise. GPTBot is decision D2 and Google-Extended is D3. Where this section and Section 5 (a) differ on a bot, Section 5 (a) and the owner's decisions govern.
+
+### 10.1 What is unsure first, and what would confirm it
+
+Act on nothing below before these checks.
+
+| # | Open question | Why it matters (status, source); who, effort |
+|---|---|---|
+| 1 | "AI contribution" panel or terms prompt ever shown in Search Console? | Invitation is the only Google route (confirmed, https://9to5google.com/2026/09/17/google-ai-contribution-pilot-tests-paying-websites-when-theyre-used-in-ai-results/, 2026-09-17). Owner, 1h |
+| 2 | Cloudflare plan? Zone touched by the 2026-09-15 default change? | Markdown for Agents needs Pro or above; 402 body needs a paid plan; "charge" is Enterprise-only; Free plan: user-agent-only detection, 24h analytics; existing zones unchanged 2026-09-15 (confirmed, docs mirror 0d35c2c, https://developers.cloudflare.com/ai-crawl-control/features/manage-ai-crawlers/, 2026-07-28). Engineer, 10m |
+| 3 | robots.txt and WAF treatment of the eleven bots? | Blocking Bingbot would undercut the Copilot case; blocking OAI-SearchBot or PerplexityBot removes citations (inference). Engineer, 1h |
+| 4 | Can a Dubai entity pass Cloudflare's dedicated Stripe Connect onboarding? | Pay Per Crawl pays only through it (confirmed, https://developers.cloudflare.com/ai-crawl-control/features/pay-per-crawl/use-pay-per-crawl-as-site-owner/manage-payouts/, 2026-07-28); UAE Express accounts not self-serve (unverified). Finance, 1w |
+| 5 | Will Microsoft admit a non-US, non-news publisher? Bing Webmaster Tools verified? Which Copilot surfaces cite? | Copilot is 4,266 of 6,992 citation links (confirmed, Ahrefs 2026-10-11); no eligibility rules (confirmed, https://about.ads.microsoft.com/en/blog/post/february-2026/building-toward-a-sustainable-content-economy-for-the-agentic-web, 2026-02-03). Owner, 2w |
+| 6 | Who controls robots.txt and headers (self-hosted or managed WordPress)? | Content Signals, RSL, Markdown negotiation need that control. Engineer, 1h |
+| 7 | Session share from chatgpt.com, perplexity.ai, copilot.microsoft.com, gemini.google.com? Dollar value of 0.1% of ad revenue? | Prices ai-input=yes; income versus optionality. SEO lead, finance, 2h |
+| 8 | Rights to all syndicated, wire or contributor content? | Marketplaces may ask for a rights warranty (unverified: digest open question, no programme text cited). Legal, 2w |
+| 9 | 85% fall from AI features, or a core or site-reputation update? | Payment would not address the latter. SEO lead, 1d |
+| 10 | Owner decisions: accept the reported Google deal shape (two-year, NDA, no-sue, training rights; unverified, https://pressgazette.co.uk/news/google-ai-deals-uk-publishers/, 2026-08-05)? Revenue target in 12 months? Micro-payments or lump-sum leverage? Stay opted in to grounding? | 10.3 and 10.5 assume yes to grounding. Owner, 1h |
+| 11 | Who at Google owns invitations, Search Console team or Global News Partnerships? Any GNI, Publisher Center, Indian, UK or EU entity link? | Times of India and Kompas are in the News AI pilot (unverified, https://pressgazette.co.uk/platforms/google-announces-first-ai-deals-with-publishers/, 2025-12-11). Owner, 2h |
+| 12 | US copyrights registered? EU DSM Art 4 wording in Content Signals and RSL valid for a Dubai entity; EU or UK representative needed? | No timely registration, no statutory damages (unverified: digest open question). Reservation is leverage only if valid (inference). Legal, 1w |
+
+### 10.2 Direct answer: does Google pay publishers for AI answers?
+
+| Question | Plain answer |
+|---|---|
+| Is the claim true? | Partly true, materially overstated. No general commitment, no application route (confirmed, https://searchengineland.com/google-tests-paying-publishers-for-using-its-content-in-ai-mode-ai-overviews-and-gemini-488382, 2026-09) |
+| Can FandomWire join? | Nothing at Google is open to apply for (confirmed, same source). Only applications anywhere: Microsoft PCM interest form (unverified), publishers@perplexity.ai (unverified), Cloudflare Pay Per Crawl signup (confirmed). Admission unknown for each; Digiday: PCM "only available to a small group of publishers" (unverified) |
+| When could money arrive? | Per channel, 10.4 horizon table (inference) |
+
+| Programme | Status, terms, FandomWire | Source |
+|---|---|---|
+| AI contribution pilot, Search Console | (confirmed) exists, invite-only, "an early-stage learning pilot". "About 100 publishers" is The Information's anonymous sourcing, not Google (confirmed as a report). Pays on pages that "contribute significantly" at generation time in Gemini app, AI Overviews, AI Mode; linked-only or post-hoc fact-check pages do not qualify. Only if invited | https://digiday.com/media/google-rolls-out-pay-value-ai-licensing-program-to-publishers/, 2026-09-14 |
+| News AI pilot | (confirmed) exists; terms (unverified). 200+ news titles, some Indian and Brazilian; cash for "extended display rights and content delivery methods like APIs"; two-year, NDA, no-sue reported. Google-selected news organisations only | https://blog.google/products-and-platforms/products/search/tools-partnerships-web-ecosystem/, 2025-12-10 |
+| Reported pitch to "news and entertainment publishers" | (unverified) The Information: AI Overviews promotion pilot for broad rights including training; decliners lose Showcase payments; Google has not confirmed the training condition. Only Google route naming entertainment; no contact route found | https://www.mediapost.com/publications/article/416113/google-looks-to-reportedly-broaden-publisher-licen.html, 2026-06-26 |
+| AP, Folha, Estadão Gemini feeds | (unverified) undisclosed; bespoke, closed | https://blog.google/products/news/associated-press-gemini-app/, 2025-01-15 |
+| France neighbouring rights | (unverified) Google told publishers in 2026-07 that AI Overviews and AI Mode count toward payments; APIG complaint 2026-08-11. French press only; no UAE or India analogue found | https://www.euronews.com/next/2026/08/11/google-ai-summaries-french-dailies-file-complaint-with-competition-authority, 2026-08-11 |
+| Canada Online News Act | (unverified) C$100M/yr by journalist headcount, news only; no AI link found | CRTC decision 2024-262, 2024-10; no URL in digest |
+| UK CMA conduct requirements | (unverified) opt-out and attribution; fair-payment rule deferred 12 months; control, not payment | https://www.gov.uk/government/news/cma-secures-fairer-deal-for-publishers-and-improves-google-search-services-in-uk, 2026-06-03 |
+| EU Art. 102 probe | (unverified) opened 2025-12-09; no decision | https://ec.europa.eu/commission/presscorner/detail/en/ip_25_2964, 2025-12-09 |
+
+Reported pilot money (The Information 2026-09-29 via https://www.seroundtable.com/google-ai-contribution-pilot-01-percent-42188.html, 2026-09-30; anonymous sources; confirmed as a report):
+
+| Participant type | Reported payout |
+|---|---|
+| Several small and mid-size sites | Under 0.1% of ad revenue |
+| Smaller sites | Under $1,000 over several months |
+| One later entrant | About $50,000 to $60,000 to date |
+| One early participant | Over $1 million a year |
+
+"Niche anime and gaming sites earn most" is (unverified) paraphrase. "Usage-based" is (disputed: Digiday calls payouts value-based, Digiday URL above, 2026-09-14).
+
+Assumption before this guidance: the owner wants grounding citations (10.1 #10). First, citations are not the payable unit (confirmed). Second, leaving the pilot does not change AI Overviews inclusion (disputed: legal-trend lens confirmed via help page 16908024; google-pay lens calls it inference from secondary reporting). Inclusion is governed by the "Search generative AI" control, worldwide since 2026-08-31 (confirmed, https://support.google.com/webmasters/answer/16908024, 2026-08-31); Gemini app use by Google-Extended, which does not affect Search inclusion (confirmed, https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers, 2026-10-11). Google's words: opted-out sites "will not receive traffic or impressions from our generative AI features"; the setting "will not be used as a ranking signal" (unverified quote, https://www.seroundtable.com/google-search-console-generative-ai-tools-live-41984.html, 2026-06). Third, participation has a reported downside: an exec warned it "could hurt publishers' leverage to push for better revenue terms"; the calculation is "quite black box" (unverified, https://digiday.com/media/media-briefing-overheard-at-the-digiday-publishing-summit-sept-26-google-zero-edition/, 2026-09).
+
+### 10.3 Pay-for-content channels found
+
+Uncertainty first: only the Google pilot, Pay Per Crawl and Monetization Gateway rows are (confirmed); all others are (unverified) or (disputed). Assumptions behind "Fit": Cloudflare Pro or above (10.1 #2); seven fetchers allowed (#3); Stripe UAE works (#4); Microsoft admits a non-US, non-news publisher (#5); FandomWire controls robots.txt and headers (#6).
+
+| Channel | Entry, artefacts, payment evidence | Fit | Status, source |
+|---|---|---|---|
+| Google AI contribution pilot | Invitation only; verified Search Console property, indexable content. Paid, mostly tiny (10.2) | Not actionable | (confirmed) 10.2 sources |
+| Microsoft PCM | Signed pilot publishers Q4 2025; announced 2026-02-03. Interest form (unverified). "Click-to-sign" (https://digiday.com/media/qa-nikhil-kolar-vp-microsoft-ai-scales-its-click-to-sign-ai-content-marketplace/, 2026-02). No format published; Bing-indexable with clean rights (inference). No payment public: "not yet a boom in the money" (https://digiday.com/media/people-incs-jon-roberts-on-the-ai-licensing-boom-and-the-revenue-lag/, 2026-04-07) | Best usage evidence (#5); admission unknown | (disputed: "all sizes" not sourced to Microsoft; technology fee unverified) https://about.ads.microsoft.com/en/blog/post/february-2026/building-toward-a-sustainable-content-economy-for-the-agentic-web, 2026-02-03 |
+| Perplexity Publishers' Program, Comet Plus | Email publishers@perplexity.ai; allow PerplexityBot, Perplexity-User. $42.5M pool, 80/20 split, paid on human visits, search citations, agent actions; older programme ad-share; payouts undisclosed | Plausible; no eligibility bar published | (unverified) https://www.perplexity.ai/hub/blog/introducing-comet-plus, 2025-08-25 |
+| OpenAI, Amazon, Meta | Bilateral only; Amazon marketplace not launched. OpenAI and Meta pay at national-newspaper scale (10.4). Amazon (disputed: Condé Nast and Hearst Rufus deals reported, https://digiday.com/media/conde-nast-and-hearst-strike-amazon-ai-licensing-deals-for-rufus/, 2025-07; NYT $20-25M/yr the only disclosed value, https://www.editorandpublisher.com/stories/amazon-to-pay-new-york-times-at-least-20-million-a-year-in-ai-deal,256961, 2025-05) | No, out of scale | (unverified) https://pressgazette.co.uk/platforms/news-publisher-ai-deals-lawsuits-openai-google/, 2026-09-23 |
+| Cloudflare Pay Per Crawl | Closed beta; signup form or Enterprise account executive. Cloudflare DNS, Admin role, one price per zone (min $0.001), dedicated Stripe Connect; balance not visible in dashboard. Docs name no paying AI company; most 402 offers reportedly declined (unverified, https://presenc.ai/research/cloudflare-pay-per-crawl-state-2026, 2026-04) | Gated by #2, #4 | (confirmed) https://developers.cloudflare.com/ai-crawl-control/features/pay-per-crawl/what-is-pay-per-crawl/, 2026-07-28 |
+| Cloudflare Pay Per Use | Beta 2026-09-30; dashboard opt-in; no origin change; payment account; allow the buyer's verified crawler. No buyer, signup link, eligibility, geography or rate card stated; UAE enrolment unknown | Cheap opt-in if a payment account exists (inference) | (disputed: confirmed from a blog mirror, absent from docs and changelog) https://blog.cloudflare.com/pay-per-use/, 2026-09-30 |
+| Cloudflare Monetization Gateway | Closed beta; x402 rules, wallet; no payments | No: "Buyers and sellers must be based in the United States" | (confirmed) https://developers.cloudflare.com/monetization-gateway/eligibility/, 2026-09-30 |
+| TollBit | Open, free; bot paywall. Integrations via Fastly, Akamai, Cloudflare workers, WordPress VIP, Arc XP (unverified); no WordPress.org plugin found. CEO: "a few hundred dollars a month to tens of thousands" (unverified, Business Standard 2026-03, no URL in digest). No AI buyer named | Possible via the Cloudflare worker route (inference); paywall may block citation fetchers (unverified) | (unverified) https://docs.tollbit.com/publisher-bot-deterrence, 2026-10-11 |
+| ProRata Gist Answers | Contact or partner; API or widget; Gist Ads split 50/50; none disclosed | Weak: widget changes the product; API path untested (inference) | (unverified) https://gist.ai/products/gist-answers, 2025-09-05 |
+| RSL Collective | Open, free, non-exclusive; WordPress is an Enrollment Partner. License: line plus rsl.xml; free to paid terms. No AI company committed; spec README "draft" | Reservation signal, not income | (unverified) https://rslcollective.org/docs/onboard, 2026-04 |
+| PLS/CLA collective AI licence (UK) | Open to all sizes since 2026-03; payment not stated | Needs a UK entity (inference, #11) | (unverified) https://pressgazette.co.uk/news/new-ai-licensing-scheme-helps-smaller-publishers-strike-deals-with-platforms/, 2026-03 |
+| Cloudflare AI Index; Wikimedia Enterprise; IAB CoMP | Paid-API models and specs: AI Index private beta since 2025-09-26; Wikimedia Enterprise sells tiered API access, $8.3M revenue; CoMP spec finalised 2026-04-28, payment out of scope, no buyer implementation | Watch only | (unverified) https://www.cnbc.com/2026/01/15/wikipedia-amazon-meta-perplexity-ai.html, 2026-01-15; https://github.com/IABTechLab/comp/blob/main/CoMP-1.0.md, 2026-04-28; AI Index no URL in digest |
+
+### 10.4 "They cannot take it free forever", weighed against the evidence
+
+Assumption before the judgement: FandomWire has no UK, EU, Canadian or Indian entity (inferred from Dubai registration, unconfirmed, 10.1 #11). Uncertainties first: no court has ruled on the merits of retrieval grounding; the OpenAI cross-motions are (disputed); every non-US row is (unverified). Direction (inference): answering drifts toward usage-based pennies; training outcomes are split; neither pays FandomWire soon.
+
+| Forum | Latest status | Status, source |
+|---|---|---|
+| Penske and Chegg v Google | Dismissed 2026-09-30: "an expectation is not an agreement" | (confirmed) https://www.reuters.com/legal/litigation/google-wins-dismissal-chegg-penske-media-lawsuits-over-ai-overviews-2026-10-01/, 2026-10-01 |
+| Dow Jones; Britannica; CNN; NYT v Perplexity | No merits ruling. Dow Jones: fact discovery to 2026-12-10, expert to 2027-03-16. Britannica: MTD pending. CNN: partial MTD pending. NYT: fact discovery closes 2026-10 | (confirmed) https://www.courtlistener.com/docket/69280523/dow-jones-company-inc-v-perplexity-ai-inc/, 2026-10-11; https://www.courtlistener.com/docket/73402641/cable-news-network-inc-v-perplexity-ai-inc/, 2026-10-11 |
+| In re OpenAI (NYT, Ziff Davis); DOJ | MTD largely denied 2025-12-15; cross-motions filed 2026-09-04, undecided; ruling likely 2027 (inference). DOJ 2026-09-01 argued training-stage copying is fair use (unverified, https://www.sternekessler.com/news-insights/client-alerts/ip-hot-topic-the-doj-chimes-in-on-fair-use-and-ai/, 2026-09) | (disputed: one fact-check could not verify the cross-motions, another confirmed via courtlistener) https://www.loeb.com/en/insights/publications/2026/01/in-re-openai-inc-copyright-infringement-litigation-dec-15-2025, 2026-01; https://www.courtlistener.com/docket/69879510/in-re-openai-inc-copyright-infringement-litigation/, 2026-10-11 |
+| USA Today Co. v OpenAI; Reddit v SerpApi, Perplexity | Filed 2026-10-08. Reddit: DMCA 1201 claims sustained 2026-07-31 | (unverified) https://thedesk.net/2026/10/usa-today-openai-copyright-lawsuit-chatgpt/, 2026-10-08; Reddit no URL in digest |
+| Bartz v Anthropic; Kadrey v Meta | Bartz: bought-book training fair use, pirated library not; $1.5B settlement approved 2026-07-20. Kadrey: fair use on a thin record, limited to unproven market harm; such training "will often be unlawful" | (unverified: dates not checked) https://authorsguild.org/news/court-grants-final-approval-anthropic-copyright-settlement/, 2026-07 |
+| Thomson Reuters v Ross (3d Cir.) | Affirmed 2026-09-29: not fair use; licensing-market harm recognised; non-generative | (unverified) https://www.ballardspahr.com/insights/alerts-and-articles/2026/10/third-circuit-addresses-fair-use-in-ai-training-but-leaves-generative-ai-questions-unresolved, 2026-10 |
+| GEMA v OpenAI (Munich); ANI v OpenAI (Delhi HC) | GEMA: liable for memorised lyrics 2025-11-11, on appeal. ANI: interim injunction refused 2026-07-24 | GEMA (confirmed) https://cms.law/en/deu/legal-updates/gema-vs.-openai-munich-regional-court-i-issues-landmark-copyright-decision, 2025-11; ANI (unverified) https://www.livelaw.in/high-court/delhi-high-court/delhi-high-court-rejects-ani-copyright-suit-open-ai-chatgpt-542736, 2026-07-24 |
+| France, EU probe, UK CMA | See 10.2; none pays FandomWire | (unverified) 10.2 sources |
+| UK government | 2026-03-18 report: no legislation; 2026-05-15 Lords response: no copyright amendment | (unverified) https://www.lewissilkin.com/insights/2026/03/24/opt-out-cop-out-uk-government-rethinks-its-position-on-copyright-and-ai-102mnx9, 2026-03-24 |
+| US Copyright Office Part 3; TRAIN, CLEAR, NO FAKES bills | Pre-publication 2025-05-09 favours a voluntary market; bills create no payment right | (unverified) https://www.copyright.gov/ai/, 2025-05-09; https://www.congress.gov/bill/119th-congress/house-bill/7209/text, 2026-01-22 |
+| EU AI Act Art. 53 | Reservation force is DSM Art 4(3); AI Act adds a copyright-policy duty; fines from 2026-08-02; leverage, not income | (disputed: source overstated the AI Act as origin) https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689, 2024-07-12 |
+
+Scale of paying deals:
+
+| Deal | Reported value | Status, source |
+|---|---|---|
+| Reddit, Google | About $60M/yr | (unverified) CNBC 2026-07-22, no URL |
+| Dotdash Meredith, OpenAI | At least $16M/yr fixed | (unverified) IAC filings, 2024 |
+| NYT, Amazon | $20-25M/yr | (unverified) E&P URL in 10.3, 2025-05 |
+| Times of India group, OpenAI | About $5M/yr | (unverified) Press Gazette URL in 10.3, 2026-09-23 |
+| Guardian, FT, Google | "Single figure millions" a year | (unverified) https://pressgazette.co.uk/news/google-ai-deals-uk-publishers/, 2026-08-05 |
+| Mid-size nationals | About $1-5M/yr | (unverified) https://pressgazette.co.uk/media_business/can-sme-licensing-deals-be-bigger-for-publishers-than-ai-licensing-deals/, 2026 |
+
+No entertainment-publisher deal surfaced in any tracker (unverified, https://otterly.ai/blog/ai-news-licensing-deals/, 2026-07-28); the only entertainment-named route is the Google pitch in 10.2. Penske (Variety) and Ziff Davis (IGN) are suing, not signing (confirmed, Reuters and Loeb URLs above).
+
+Counter-evidence on blocking, the stated support for ai-input=yes in 10.5:
+
+| Measure | Figure | Status, source |
+|---|---|---|
+| AI referrals, share of site traffic | About 1% | (unverified) https://www.superlines.io/articles/ai-search-statistics/, 2026 |
+| Traffic lost by news publishers that blocked AI crawlers, two 2026 studies | 7% and 23% | (unverified) https://ppc.land/blocking-ai-crawlers-cost-news-publishers-7-of-traffic-study-finds/, 2026 |
+| TollBit European scrape-to-referral ratio, Q1 to Q2 2026 | 150:1 to 227:1 | (unverified) https://digiday.com/media/european-publishers-are-getting-hit-harder-by-ai-bot-scraping-report-finds/, 2026 |
+| Scrapes bypassing robots.txt, Q4 2025 | 30% | (unverified) same Digiday report |
+
+Judgement, dated 2026-10-11: no court, regulator or bill in the table will compel payment to FandomWire inside the window below. The thesis is a fair long-run bet and a poor short-run plan. Agent-friendly engineering is the right response. Every artefact must also carry a machine-readable reservation, so the site is eligible rather than free.
+
+Horizon (inference throughout; dollar ranges are the digest's estimates):
+
+| Channel | Earliest plausible first payment | Realistic amount |
+|---|---|---|
+| Google pilot | Never, unless invited | Reported: under 0.1% of ad revenue for small sites |
+| Microsoft PCM; Perplexity | Unknown; no PCM payouts reported as of 2026-04-23; Perplexity payouts undisclosed | Unknown |
+| Cloudflare Pay Per Crawl, Pay Per Use | After Stripe UAE clears (#4); no buyer named | Tens to low hundreds of dollars a month |
+| Compelled payment; all channels, 6 to 18 months | Not before 2027, if ever; first grounding merits rulings after that. Any channel: only if admitted | Likely low thousands of dollars a year in total |
+
+### 10.5 Agent-friendly checklist
+
+Assumptions before this list: FandomWire controls robots.txt and HTTP headers (10.1 #6); is on Cloudflare Pro or above (#2); wants grounding citations (#10), so ai-input stays allowed and ai-train is reserved. One trade-off is unavoidable: Google-Extended governs both Gemini training and grounding (confirmed, https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers, 2026-10-11), so ai-input=yes with ai-train=no cannot be expressed for the Gemini app with one token. Disallowing it reserves training but removes one of the three pilot surfaces. This list keeps it allowed pending #10.
+
+| Item | Layer | Required today by; nice to have for | Status, source |
+|---|---|---|---|
+| Per-bot robots.txt: allow the seven fetchers; decide the four separately (ClaudeBot: purpose not established in the digest, unverified). Keep the "Search generative AI" control off; avoid nosnippet | (a) | De facto by all search-grounded buyers. Pilot eligibility via crawlability and no nosnippet is (inference); the only reported requirement is crawlability (https://9to5google.com/2026/09/17/google-ai-contribution-pilot-tests-paying-websites-when-theyre-used-in-ai-results/, 2026-09-17) | (confirmed) control and Google-Extended URLs in 10.2 |
+| Complete JSON-LD NewsArticle (headline, author, datePublished, dateModified, image, publisher), og tags, full-text RSS | (b) | Google de facto. Markdown for Agents extracts exactly these; NLWeb ingests schema.org and RSS. Nice for PCM delivery (format unpublished) | (confirmed) https://developers.cloudflare.com/fundamentals/reference/markdown-for-agents/, 2026-10-09; RSS (unverified) |
+| Content Signals line: search=yes, ai-input=yes, ai-train=no. Cloudflare AI bot policies: Search allow, Agent allow, Training disallow; Bot Preference Sync on. Training=Disallow also edge-blocks training crawlers, mixed-use excluded (confirmed), so GPTBot and CCBot are edge-blocked whatever row 1 decides; set Training=Allow if #10 says otherwise | (a), NEW wording | Offered by Cloudflare on all plans since 2026-07-01; required by nobody; Google parses only four robots fields (confirmed). Nice for the EU DSM Art 4 reservation (#12) | (confirmed) https://developers.cloudflare.com/bots/additional-configurations/managed-robots-txt/, 2026-10-08 |
+| Custom 402 or 403 block body naming a licence contact | (a), NEW | Nobody; paid plans only | (confirmed) https://developers.cloudflare.com/ai-crawl-control/features/manage-ai-crawlers/, 2026-07-28 |
+| Markdown for Agents on; verify it keeps JSON-LD and the origin Content-Signal header, since it injects ai-train=yes unless the origin sends its own | (b), NEW | Nobody; agents sending Accept: text/markdown | (confirmed) https://developers.cloudflare.com/fundamentals/reference/markdown-for-agents/, changelog 2026-10-09 |
+| RSL License: line plus rsl.xml: ai-train paid, ai-search free with attribution | (d), NEW | Nobody; RSL Collective, Fastly gatekeeper, EU reservation | (unverified) https://rslcollective.org/docs/onboard, 2026-04 |
+| Cloudflare Agent Readiness scan (AI Crawl Control, Directives tab) scores robots.txt, sitemap.xml, RFC 8288 Link headers, Markdown negotiation, Content Signals, AI rules in robots.txt, Web Bot Auth directory, Agent Skills, API Catalog (RFC 9727), OAuth discovery, MCP Server Card, WebMCP; llms.txt not scored | (b), (c) | Nobody. First six overlap rows above; the rest are nice to have only (inference) | (confirmed) https://blog.cloudflare.com/agent-readiness/, 2026-04-17; changelog 2026-04-17 |
+| Measurement: AI referrer segments, Search Console AI report, Cloudflare crawler export with "Robots.txt violations" column | (d) | Every buyer conversation | Search Console report (unverified); Cloudflare table (confirmed, https://developers.cloudflare.com/ai-crawl-control/, 2026-08-14) |
+| Applications: PCM interest form, publishers@perplexity.ai, Pay Per Crawl signup. Rights review (#8) | (d), review NEW | The programmes; warranty requirement (unverified: digest open question) | PCM form (unverified), Perplexity (unverified), Pay Per Crawl (confirmed); URLs and dates in 10.3 |
+| NLWeb or MCP endpoint (/ask, /mcp) | (c) | Nobody; no source ties NLWeb to PCM or Copilot ingestion | (confirmed) https://github.com/microsoft/NLWeb, 2026-06-10 |
+
+### 10.6 What this changes in the plan's priorities
+
+Assumptions before these changes:
+
+| Assumption | Value | Basis |
+|---|---|---|
+| Plan length; engineering capacity | 90 days; one engineer, part time | Prior plan; owner to confirm |
+| Payout level below which no build is funded | Under 0.1% of ad revenue | 10.1 #7 would settle this |
+| Metrics to add | Three: AI referrer sessions by source per month; pages fetched by verified AI crawlers per month; programme status (applied, acknowledged, admitted, paid) per channel | (inference) |
+
+| Change | Item, layer | Engineer-weeks | Reason |
+|---|---|---|---|
+| Moves earlier, weeks 1 to 2 | Robots.txt and WAF audit for the eleven bots (a); AI referrer and crawler measurement (d) | 0.5 plus 0.5 | One wrong Disallow would undercut the Copilot case (inference). Every buyer conversation needs a number; settles 10.1 #7, #9 |
+| Moves earlier, weeks 1 to 3 | Applications: PCM, Perplexity, Pay Per Crawl signup (d) | 0.25 plus owner time | Nothing can be pre-built for PCM (inference) |
+| Stays early | JSON-LD completeness, full-text RSS (b) | 1.0 | Cheapest artefact every channel consumes (inference) |
+| NEW, weeks 2 to 5 | Content Signals, AI bot policies, Bot Preference Sync, RSL line and rsl.xml (a), (d); custom 402 body and Markdown for Agents header test (a), (b) | 0.75 plus 0.5 | Free reservation signals, no income expected; the 402 body turns a block into an offer, paid plan, verify the Content-Signal injection |
+| NEW, non-engineering | Stripe Connect feasibility for a UAE entity; rights review; EU Art 4 wording review (d) | 0 (finance, legal) | Gates Pay Per Crawl (confirmed); warranty need (unverified) |
+| Moves later, after day 90 | Optional MCP server; Agent Readiness extras (c) | 4 to 6 plus hosting | No buyer requires it (confirmed, NLWeb row); vector DB and inference cost |
+| Stays out | A2A; TollBit paywall; Gist widget; Monetization Gateway; litigation (c), none | 0 | A2A per section 3. Paywall and widget may block citation fetchers (unverified). Gateway US-only (confirmed). Litigation: no registration, no statutory damages (unverified) |
+| Decide | US copyright registration | 0 (legal) | Assumption: FandomWire does not register today (10.1 #12). Cost: fees per work or group, plus legal time. Value: statutory-damages leverage only if litigation is ever contemplated (inference) |
+
+Net effect. Layers (a) and (d) absorb all new work and move first; (b) keeps its slot; (c) moves as tabled. The licensing half of (d) now means "apply where a form exists, measure the rest, reserve rights everywhere". Engineer-week figures are estimates, not quotes (inference).
+
+## 11. Sources (dated) and claim-status table
 
 ### Sources
 
