@@ -111,6 +111,7 @@ function microScore(headline){
   if(/\(\s*(19|20)\d\d\s*\)/.test(t)) add(-2,'parenthetical year — 0 competitor occurrences');
   if(/\b\d+\s+years?\s+(later|ago|after)\b/i.test(t)) add(2,'"X Years Later/After" time anchor — Era-2: 6.1%→8.4%');
   if(/,\s*ranked\b/i.test(t)) add(2,'", Ranked" suffix — 5x competitor signature');
+  if(/\b(every|all\s+\d{1,2})\s+[^,]{3,60},\s*ranked\b/i.test(t)) add(3,'S28 exhaustive-scope anchor ("Every X"/"All N X", Ranked) - leading number jaisa hi count hota hai; 4 FW pages 500-5.5K clicks (Oct 11-17)');
   if(/\bof all time\b/i.test(t)) add(1,'"of All Time" — 3x over-indexed');
   if(/\b(you forgot|you (probably )?missed|you need to (see|watch)|right now|ever made|in history)\b/i.test(t)) add(-3,'second-person guilt suffix — dead in competitor titles');
   if(words.length>=10&&words.length<=14) add(2,words.length+' words — inside the 10-14 band');

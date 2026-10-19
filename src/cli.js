@@ -138,6 +138,10 @@ function microScore(headline, classifier) {
 
   // Suffixes (S3, S4, S5)
   if (/,\s*ranked\b/i.test(t)) add(2, '", Ranked" suffix — 5x competitor signature');
+  // S28 (2026-10-19): "Every X, Ranked" / "All N X, Ranked" = exhaustive-scope listicle. Same job as a leading
+  // count, but no digit-first bonus reached it, so these scored 0-1 while earning 5.5K/5.1K/635/518 clicks (FW GSC Oct 11-17).
+  if (/\b(every|all\s+\d{1,2})\s+[^,]{3,60},\s*ranked\b/i.test(t))
+    add(3, 'S28 exhaustive-scope anchor ("Every X"/"All N X", Ranked) - counts like a leading number; 4 FW pages 500-5.5K clicks (Oct 11-17)');
   if (/\bof all time\b/i.test(t)) add(1, '"of All Time" — 3x over-indexed');
   if (/\b(you forgot|you (probably )?missed|you need to (see|watch)|right now|ever made|in history)\b/i.test(t))
     add(-3, 'second-person guilt suffix — dead in competitor titles (0-1 of 318 listicles)');
