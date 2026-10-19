@@ -764,6 +764,14 @@ async function publishDash() {
   });
 }
 
+// cmdExportStatic() is also what writes dashboard-cache.json (the snapshot the
+// live /api/report endpoint serves). It used to run only via publishTick, so
+// disabling the (permanently dead) wrangler publish below also froze the live
+// dashboard's cache. Refresh the cache on its own timer, independent of publish.
+async function refreshDashCache() {
+  try { await cmdExportStatic(); } catch (e) { console.error(chalk.yellow(`  [dash-cache] refresh failed: ${e.message}`)); }
+}
+
 async function cmdMaster() {
   // Singleton: bind a port so a second master (session + Startup task) exits
   // instead of becoming a second sql.js writer.
@@ -817,11 +825,15 @@ async function cmdMaster() {
 
   console.log(chalk.bold.cyan(`  MASTER LOOP — lanes: rss/1h · domains/6h · full/24h · started ${new Date().toISOString()}\n`));
   setInterval(tick, 60 * 1000);
-  // publishTick disabled 2026-09-12: fw-discover-dash static publish is dead
-  // (wrangler creds absent on VPS, pages.dev frozen by design) — it only spawned
-  // a failing npx every 20 min and spammed the logs. Re-enable if the static
-  // mirror ever comes back: setInterval(publishTick, 20 * 60 * 1000);
+  // publishTick (full wrangler publish) disabled 2026-09-12: fw-discover-dash
+  // static publish is dead (wrangler creds absent on VPS, pages.dev frozen by
+  // design) — it only spawned a failing npx every 20 min and spammed the logs.
+  // Re-enable if the static mirror ever comes back: setInterval(publishTick, 20 * 60 * 1000);
   void publishTick;
+  // But the live dashboard's cache still needs this same 20-min refresh —
+  // keep just the DB export half running so /api/report doesn't go stale.
+  setInterval(refreshDashCache, 20 * 60 * 1000);
+  refreshDashCache();
   setInterval(() => console.log(chalk.gray(`  [master] heartbeat ${new Date().toISOString()} — next: ${LANES.map(l => `${l.name} in ${Math.max(0, Math.round((due.get(l.name) - Date.now()) / 60000))}m`).join(', ')}`)), 15 * 60 * 1000);
   tick();
 }
@@ -970,6 +982,7 @@ async function cmdDashboard() {
   // cost matters at DB sizes where it would.
   let db = await openDb();
   let seenDbVersion = dbVersion(dbFile);
+  let reloadingDb = null;
   let topicCache = readTopicCache();
   let seenTopicCacheMtime = fs.existsSync(topicCacheFile) ? fs.statSync(topicCacheFile).mtimeMs : 0;
   let dashboardCache = readDashboardCache();
@@ -993,18 +1006,29 @@ async function cmdDashboard() {
     }
   }
 
+  async function freshDashboardCache() {
+    refreshDashboardCache();
+    await freshDb();
+    if (dashboardCache.db_version !== seenDbVersion) {
+      dashboardCache = { db_version: seenDbVersion, reports: {}, articles: [] };
+    }
+  }
+
   async function freshDb() {
     const version = fs.existsSync(dbFile) ? dbVersion(dbFile) : 'missing';
     if (version !== seenDbVersion) {
-      try {
-        const next = await openDb();
-        db.close();
-        db = next;
-        seenDbVersion = version;
-      } catch (err) {
-        // Mid-write snapshot: keep serving the last good copy, retry next request.
-        console.error(chalk.yellow(`  ⚠ DB reload skipped: ${err.message}`));
-      }
+      if (!reloadingDb) reloadingDb = (async () => {
+        try {
+          const next = await openDb();
+          db.close();
+          db = next;
+          seenDbVersion = version;
+        } catch (err) {
+          // Mid-write snapshot: keep serving the last good copy, retry next request.
+          console.error(chalk.yellow(`  ⚠ DB reload skipped: ${err.message}`));
+        }
+      })().finally(() => { reloadingDb = null; });
+      await reloadingDb;
     }
     return db;
   }
@@ -1021,7 +1045,7 @@ async function cmdDashboard() {
   }
 
   async function reportForDays(requestedDays) {
-    refreshDashboardCache();
+    await freshDashboardCache();
     if (dashboardCache.reports[requestedDays]) return dashboardCache.reports[requestedDays];
 
     const liveDb = await freshDb();
@@ -1030,7 +1054,7 @@ async function cmdDashboard() {
   }
 
   async function recentArticles(limit) {
-    refreshDashboardCache();
+    await freshDashboardCache();
     if (dashboardCache.articles.length && limit <= 50) return dashboardCache.articles.slice(0, limit);
     const articles = (await freshDb()).getRecentArticles(limit);
     if (limit <= 50) dashboardCache.articles = articles;
